@@ -243,8 +243,10 @@ const viewSource = (s) => {
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.05);
   overflow: hidden;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  will-change: contents;
 }
 
 .chat-header {
@@ -281,6 +283,7 @@ const viewSource = (s) => {
   overflow-y: auto;
   padding: 24px;
   scroll-behavior: smooth;
+  min-height: 400px;
 }
 
 .welcome-guide {
@@ -291,6 +294,7 @@ const viewSource = (s) => {
   height: 100%;
   color: #909399;
   text-align: center;
+  min-height: 400px;
 }
 
 .welcome-icon {
@@ -515,5 +519,23 @@ const viewSource = (s) => {
 .pop-footer {
   font-size: 11px;
   color: #909399;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .chat-wrapper {
+    min-width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    height: calc(100vh - 60px);
+  }
+  
+  .quick-queries {
+    flex-direction: column;
+  }
+  
+  .message-bubble {
+    max-width: 90%;
+  }
 }
 </style>

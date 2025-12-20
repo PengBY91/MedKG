@@ -1,73 +1,116 @@
 import logging
 import time
 import json
+import os
+from logging.handlers import RotatingFileHandler
+from datetime import datetime
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("logs/app.log"),
-        logging.StreamHandler()
-    ]
-)
+class JsonFormatter(logging.Formatter):
+    """
+    Custom formatter that outputs logs in JSON format.
+    """
+    def format(self, record):
+        log_record = {
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "level": record.levelname,
+            "name": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "funcName": record.funcName,
+            "lineno": record.lineno
+        }
+        if record.exc_info:
+            log_record["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_record, ensure_ascii=False)
 
-logger = logging.getLogger("medical_governance")
+def setup_logging(log_level=logging.INFO):
+    """
+    Setup structured logging with rotating file handlers.
+    """
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+
+    # Console Handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter(
+        '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+    ))
+    root_logger.addHandler(console_handler)
+
+    # JSON File Handler (Rotating)
+    file_handler = RotatingFileHandler(
+        os.path.join(log_dir, "app.log"),
+        maxBytes=10*1024*1024,
+        backupCount=5,
+        encoding="utf-8"
+    )
+    file_handler.setFormatter(JsonFormatter())
+    root_logger.addHandler(file_handler)
+
+    # Error Log Handler
+    error_handler = RotatingFileHandler(
+        os.path.join(log_dir, "error.log"),
+        maxBytes=10*1024*1024,
+        backupCount=10,
+        encoding="utf-8"
+    )
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(JsonFormatter())
+    root_logger.addHandler(error_handler)
 
 class LoggingMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to log every HTTP request and response in JSON format.
+    """
     async def dispatch(self, request: Request, call_next: Callable):
-        # Log request
         start_time = time.time()
         
-        # Extract request info
-        request_info = {
-            "method": request.method,
-            "url": str(request.url),
-            "client_ip": request.client.host if request.client else None,
-            "user_agent": request.headers.get("user-agent"),
-            "auth_header": request.headers.get("authorization")[:30] + "..." if request.headers.get("authorization") else None,
-        }
-
-        
-        logger.info(f"Request started: {json.dumps(request_info)}")
-        
-        # Process request
         try:
             response = await call_next(request)
-            
-            # Calculate duration
             duration = time.time() - start_time
             
-            # Log response
-            response_info = {
-                **request_info,
+            log_data = {
+                "method": request.method,
+                "path": request.url.path,
                 "status_code": response.status_code,
-                "duration_ms": round(duration * 1000, 2)
+                "duration_ms": round(duration * 1000, 2),
+                "client_ip": request.client.host if request.client else "unknown"
             }
             
-            logger.info(f"Request completed: {json.dumps(response_info)}")
-            
-            # Add custom headers
-            response.headers["X-Process-Time"] = str(duration)
-            
+            if response.status_code >= 500:
+                logging.error(f"Request failed: {json.dumps(log_data)}")
+            elif response.status_code >= 400:
+                logging.warning(f"Request warning: {json.dumps(log_data)}")
+            else:
+                logging.info(f"Request completed: {json.dumps(log_data)}")
+                
             return response
-            
         except Exception as e:
             duration = time.time() - start_time
-            logger.error(f"Request failed: {json.dumps({**request_info, 'error': str(e), 'duration_ms': round(duration * 1000, 2)})}")
+            logging.error(json.dumps({
+                "method": request.method,
+                "path": request.url.path,
+                "error": str(e),
+                "duration_ms": round(duration * 1000, 2)
+            }))
             raise
 
 def log_operation(operation: str, user: str, details: dict):
-    """
-    Log important business operations for audit trail.
-    """
+    """Log important business operations for audit trail."""
     audit_log = {
-        "timestamp": time.time(),
+        "timestamp": datetime.utcnow().isoformat(),
         "operation": operation,
         "user": user,
         "details": details
     }
-    logger.info(f"AUDIT: {json.dumps(audit_log)}")
+    logging.info(f"AUDIT: {json.dumps(audit_log, ensure_ascii=False)}")

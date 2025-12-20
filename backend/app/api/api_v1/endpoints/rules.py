@@ -17,17 +17,17 @@ sandbox_runner = SandboxRunner(graph_db)
 @router.get("/")
 async def list_rules():
     """List all persisted rules."""
-    return knowledge_store.get_all_rules()
+    return await knowledge_store.get_all_rules()
 
 @router.post("/")
 async def add_rule(rule_data: dict = Body(...)):
     """Add a rule manually or from compilation result."""
-    return knowledge_store.add_rule(rule_data)
+    return await knowledge_store.add_rule(rule_data)
 
 @router.delete("/{rule_id}")
 async def delete_rule(rule_id: str):
     """Delete a rule by ID."""
-    knowledge_store.delete_rule(rule_id)
+    await knowledge_store.delete_rule(rule_id)
     return {"status": "success"}
 
 @router.post("/compile")

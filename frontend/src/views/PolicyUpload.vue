@@ -153,8 +153,8 @@
                     <el-dropdown-item :icon="Connection" @click="extractRules(row)" :disabled="row.status !== 'completed'">
                       重新提取规则
                     </el-dropdown-item>
-                    <el-dropdown-item :icon="Download" divided>下载原文</el-dropdown-item>
-                    <el-dropdown-item :icon="Delete" style="color: #f56c6c">删除记录</el-dropdown-item>
+                    <el-dropdown-item :icon="Download" divided @click="handleDownload(row)">下载原文</el-dropdown-item>
+                    <el-dropdown-item :icon="Delete" style="color: #f56c6c" @click="handleDelete(row)">删除记录</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -219,6 +219,56 @@
           >
             {{ tag }}
           </el-tag>
+        </div>
+
+        <el-divider>提取规则详情</el-divider>
+        <div v-if="currentDetail.extracted_rules && currentDetail.extracted_rules.length > 0" class="extraction-section">
+          <el-collapse>
+            <el-collapse-item v-for="(rule, idx) in currentDetail.extracted_rules" :key="idx">
+              <template #title>
+                <div class="rule-header">
+                  <el-icon color="#409eff"><Document /></el-icon>
+                  <span class="rule-title">规则 {{ idx + 1 }}</span>
+                  <el-tag size="small" :type="rule.status === 'valid' ? 'success' : 'warning'">
+                    {{ rule.status || '未知' }}
+                  </el-tag>
+                </div>
+              </template>
+              <div class="rule-content">
+                <div class="rule-field" v-if="rule.name">
+                  <strong>规则名称:</strong> {{ rule.name }}
+                </div>
+                <div class="rule-field" v-if="rule.description">
+                  <strong>描述:</strong> {{ rule.description }}
+                </div>
+                <div class="rule-field" v-if="rule.shacl_content">
+                  <strong>SHACL 内容预览:</strong>
+                  <pre class="shacl-preview">{{ rule.shacl_content.substring(0, 200) }}...</pre>
+                </div>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+        <div v-else class="empty-state">
+          <el-icon><Warning /></el-icon>
+          <span>暂无提取的规则</span>
+        </div>
+
+        <el-divider>提取实体详情</el-divider>
+        <div v-if="currentDetail.extracted_entities && currentDetail.extracted_entities.length > 0" class="extraction-section">
+          <div class="entity-list">
+            <div v-for="(entity, idx) in currentDetail.extracted_entities" :key="idx" class="entity-item">
+              <div class="entity-term">{{ entity.term }}</div>
+              <div class="entity-meta">
+                <el-tag size="small" type="info">{{ entity.suggestion || '未映射' }}</el-tag>
+                <span class="confidence">置信度: {{ (entity.confidence * 100).toFixed(0) }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          <el-icon><Warning /></el-icon>
+          <span>暂无提取的实体</span>
         </div>
 
         <div class="drawer-footer">
@@ -336,6 +386,40 @@ const loadDocuments = async () => {
 const viewDetail = (doc) => {
   currentDetail.value = doc
   detailVisible.value = true
+}
+
+const handleDownload = async (doc) => {
+  try {
+    const response = await api.downloadPolicy(doc.id)
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', doc.filename)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    ElMessage.error(`下载失败: ${error.message}`)
+  }
+}
+
+const handleDelete = async (doc) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要永久删除文档 "${doc.filename}" 及其所有提取结果吗？此操作不可撤销。`,
+      '警告',
+      { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning' }
+    )
+    
+    await api.deletePolicy(doc.id)
+    ElMessage.success('文档已成功删除')
+    loadStatistics()
+    loadDocuments()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(`删除失败: ${error.message}`)
+    }
+  }
 }
 
 const extractRules = async (doc) => {
@@ -637,5 +721,102 @@ onMounted(() => {
   width: 100%;
   height: 48px;
   border-radius: 12px;
+}
+
+/* Extraction Results Styles */
+.extraction-section {
+  margin: 16px 0;
+}
+
+.rule-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.rule-title {
+  flex: 1;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.rule-content {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.rule-field {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.rule-field:last-child {
+  margin-bottom: 0;
+}
+
+.rule-field strong {
+  color: #1e293b;
+  margin-right: 8px;
+}
+
+.shacl-preview {
+  margin-top: 8px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #64748b;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entity-item {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.entity-term {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.entity-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.confidence {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.empty-state .el-icon {
+  font-size: 20px;
 }
 </style>

@@ -8,9 +8,12 @@ from app.core.exceptions import (
     validation_exception_handler,
     general_exception_handler
 )
-from app.core.logging import LoggingMiddleware
+from app.core.logging import LoggingMiddleware, setup_logging
 from app.core.task_queue import task_queue
 import asyncio
+
+# Initialize logging
+setup_logging()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

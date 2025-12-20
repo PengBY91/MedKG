@@ -108,6 +108,7 @@ dmypy.json
 # Uploaded documents (if storing locally)
 backend/uploads/
 backend/documents/
+backend/storage/
 
 # Neo4j data (if running locally)
 neo4j_data/

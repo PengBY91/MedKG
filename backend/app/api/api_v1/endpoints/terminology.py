@@ -11,12 +11,12 @@ router = APIRouter()
 @router.get("/")
 async def list_terms():
     """List all standardized terminology mappings."""
-    return knowledge_store.get_all_terms()
+    return await knowledge_store.get_all_terms()
 
 @router.delete("/{term}")
 async def delete_term(term: str):
     """Delete a terminology mapping."""
-    knowledge_store.delete_term(term)
+    await knowledge_store.delete_term(term)
     return {"status": "success"}
 
 @router.post("/upload")
@@ -82,7 +82,7 @@ async def submit_feedback(
     """
     # Persist the approved mapping
     if status == "APPROVED":
-        knowledge_store.add_terms([{"term": term, "code": suggested_code, "status": "APPROVED"}])
+        await knowledge_store.add_terms([{"term": term, "code": suggested_code, "status": "APPROVED"}])
         
     return {
         "status": "success",

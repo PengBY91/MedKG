@@ -89,6 +89,10 @@ export default {
         return api.get(`/policies/${id}`)
     },
 
+    downloadPolicy(id) {
+        return api.get(`/policies/${id}/download`, { responseType: 'blob' })
+    },
+
     updatePolicy(id, data) {
         return api.put(`/policies/${id}`, data)
     },

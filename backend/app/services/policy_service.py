@@ -1,166 +1,223 @@
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
-import os
-
-class PolicyDocument:
-    """Policy document model."""
-    def __init__(
-        self,
-        filename: str,
-        tenant_id: str,
-        uploaded_by: str,
-        file_size: int
-    ):
-        self.id = str(uuid.uuid4())
-        self.tenant_id = tenant_id
-        self.filename = filename
-        self.file_size = file_size
-        self.uploaded_by = uploaded_by
-        self.status = "processing"  # processing, completed, failed
-        self.version = 1
-        self.category = "未分类"
-        self.tags = []
-        self.total_chars = 0
-        self.chunks_count = 0
-        self.extracted_rules_count = 0
-        self.error_message = None
-        self.created_at = datetime.utcnow().isoformat()
-        self.updated_at = datetime.utcnow().isoformat()
-        self.completed_at = None
+import json
+from fastapi import UploadFile
+from sqlalchemy.orm import Session
+from sqlalchemy import desc, func
+from app.db.base import SessionLocal
+from app.db.models import PolicyDocument as PolicyDocumentModel
+from app.services.file_storage_service import file_storage
+from app.services.cache_service import cache_service, cached
 
 class PolicyService:
-    """Enhanced policy document service."""
+    """Enhanced policy document service with database persistence."""
     
     def __init__(self):
-        self.documents: Dict[str, PolicyDocument] = {}
-    
-    def _create_sample_documents(self):
-        """Create sample policy documents."""
+        # We'll use database sessions instead of this local dictionary
         pass
-
+    
     async def upload_document(
         self,
-        filename: str,
-        file_size: int,
+        file: UploadFile,
         tenant_id: str,
-        user_id: str
+        user_id: str,
+        extracted_rules: Optional[List[Dict]] = None,
+        extracted_entities: Optional[List[Dict]] = None,
+        preview_text: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Upload a new policy document."""
-        doc = PolicyDocument(
-            filename=filename,
-            tenant_id=tenant_id,
-            uploaded_by=user_id,
-            file_size=file_size
-        )
-        
-        # Simulate processing
-        doc.status = "completed"
-        doc.total_chars = file_size // 10  # Mock calculation
-        doc.chunks_count = file_size // 10000  # Mock calculation
-        doc.completed_at = datetime.utcnow().isoformat()
-        
-        self.documents[doc.id] = doc
-        return self._document_to_dict(doc)
+        """
+        Save document to storage and database.
+        """
+        db = SessionLocal()
+        try:
+            doc_id = str(uuid.uuid4())
+            
+            # Save physical file
+            file_path = await file_storage.save_file(
+                file=file,
+                category="policies",
+                tenant_id=tenant_id,
+                prefix=doc_id
+            )
+            
+            # Create database record
+            new_doc = PolicyDocumentModel(
+                id=doc_id,
+                tenant_id=tenant_id,
+                filename=file.filename,
+                file_size=0, # Will be set after seeking or from file object if available
+                file_path=file_path,
+                uploaded_by=user_id,
+                status="completed",
+                extracted_rules_count=len(extracted_rules) if extracted_rules else 0,
+                extracted_rules=json.dumps(extracted_rules) if extracted_rules else "[]",
+                extracted_entities=json.dumps(extracted_entities) if extracted_entities else "[]",
+                preview_text=preview_text or ""
+            )
+            
+            db.add(new_doc)
+            db.commit()
+            db.refresh(new_doc)
+            
+            # Invalidate cache
+            await cache_service.clear_pattern(f"policy_stats:{tenant_id}*")
+            await cache_service.clear_pattern(f"policy_list:{tenant_id}*")
+            
+            return self._document_to_dict(new_doc)
+        finally:
+            db.close()
     
+    @cached("policy_list", expire=300)
     async def get_documents(
         self,
         tenant_id: str,
         category: Optional[str] = None,
         status: Optional[str] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 20
     ) -> List[Dict[str, Any]]:
-        """Get policy documents with filtering."""
-        docs = [d for d in self.documents.values() if d.tenant_id == tenant_id]
-        
-        if category:
-            docs = [d for d in docs if d.category == category]
-        if status:
-            docs = [d for d in docs if d.status == status]
-        
-        # Sort by created_at descending
-        docs.sort(key=lambda x: x.created_at, reverse=True)
-        
-        # Pagination
-        docs = docs[skip:skip + limit]
-        
-        return [self._document_to_dict(d) for d in docs]
+        """Get policy documents with filtering from database."""
+        db = SessionLocal()
+        try:
+            query = db.query(PolicyDocumentModel).filter(PolicyDocumentModel.tenant_id == tenant_id)
+            
+            if category:
+                query = query.filter(PolicyDocumentModel.category == category)
+            if status:
+                query = query.filter(PolicyDocumentModel.status == status)
+            
+            query = query.order_by(desc(PolicyDocumentModel.created_at))
+            docs = query.offset(skip).limit(limit).all()
+            
+            return [self._document_to_dict(d) for d in docs]
+        finally:
+            db.close()
     
     async def get_document(self, document_id: str) -> Optional[Dict[str, Any]]:
-        """Get document by ID."""
-        doc = self.documents.get(document_id)
-        if not doc:
-            return None
-        return self._document_to_dict(doc)
+        """Get document by ID from database."""
+        db = SessionLocal()
+        try:
+            doc = db.query(PolicyDocumentModel).filter(PolicyDocumentModel.id == document_id).first()
+            if not doc:
+                return None
+            return self._document_to_dict(doc)
+        finally:
+            db.close()
     
     async def update_document(
         self,
         document_id: str,
         update_data: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        """Update document metadata."""
-        doc = self.documents.get(document_id)
-        if not doc:
-            return None
-        
-        if "category" in update_data:
-            doc.category = update_data["category"]
-        if "tags" in update_data:
-            doc.tags = update_data["tags"]
-        
-        doc.updated_at = datetime.utcnow().isoformat()
-        
-        return self._document_to_dict(doc)
+        """Update document metadata in database."""
+        db = SessionLocal()
+        try:
+            doc = db.query(PolicyDocumentModel).filter(PolicyDocumentModel.id == document_id).first()
+            if not doc:
+                return None
+            
+            if "category" in update_data:
+                doc.category = update_data["category"]
+            if "tags" in update_data:
+                doc.tags = json.dumps(update_data["tags"])
+            
+            doc.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(doc)
+            
+            # Invalidate cache
+            await cache_service.clear_pattern(f"policy_list:{doc.tenant_id}*")
+            
+            return self._document_to_dict(doc)
+        finally:
+            db.close()
     
     async def delete_document(self, document_id: str) -> bool:
-        """Delete a document."""
-        if document_id in self.documents:
-            del self.documents[document_id]
+        """
+        Delete document record and physical file.
+        """
+        db = SessionLocal()
+        try:
+            doc = db.query(PolicyDocumentModel).filter(PolicyDocumentModel.id == document_id).first()
+            if not doc:
+                return False
+            
+            # Delete physical file
+            if doc.file_path:
+                file_storage.delete_file(doc.file_path)
+            
+            tenant_id = doc.tenant_id
+            db.delete(doc)
+            db.commit()
+            
+            # Invalidate cache
+            await cache_service.clear_pattern(f"policy_stats:{tenant_id}*")
+            await cache_service.clear_pattern(f"policy_list:{tenant_id}*")
+            
             return True
-        return False
+        finally:
+            db.close()
     
+    @cached("policy_stats", expire=600)
     async def get_statistics(self, tenant_id: str) -> Dict[str, Any]:
-        """Get policy statistics."""
-        docs = [d for d in self.documents.values() if d.tenant_id == tenant_id]
-        
-        total_docs = len(docs)
-        completed_docs = len([d for d in docs if d.status == "completed"])
-        processing_docs = len([d for d in docs if d.status == "processing"])
-        failed_docs = len([d for d in docs if d.status == "failed"])
-        total_rules = sum(d.extracted_rules_count for d in docs)
-        
-        # Category distribution
-        categories = {}
-        for doc in docs:
-            categories[doc.category] = categories.get(doc.category, 0) + 1
-        
-        return {
-            "total_documents": total_docs,
-            "completed": completed_docs,
-            "processing": processing_docs,
-            "failed": failed_docs,
-            "total_extracted_rules": total_rules,
-            "categories": categories
-        }
+        """Get policy statistics from database."""
+        db = SessionLocal()
+        try:
+            base_query = db.query(PolicyDocumentModel).filter(PolicyDocumentModel.tenant_id == tenant_id)
+            
+            total_docs = base_query.count()
+            completed_docs = base_query.filter(PolicyDocumentModel.status == "completed").count()
+            processing_docs = base_query.filter(PolicyDocumentModel.status == "processing").count()
+            failed_docs = base_query.filter(PolicyDocumentModel.status == "failed").count()
+            
+            total_rules = db.query(func.sum(PolicyDocumentModel.extracted_rules_count)).filter(
+                PolicyDocumentModel.tenant_id == tenant_id
+            ).scalar() or 0
+            
+            # Category distribution
+            categories_result = db.query(
+                PolicyDocumentModel.category, 
+                func.count(PolicyDocumentModel.id)
+            ).filter(
+                PolicyDocumentModel.tenant_id == tenant_id
+            ).group_by(PolicyDocumentModel.category).all()
+            
+            categories = {cat: count for cat, count in categories_result}
+            
+            return {
+                "total_documents": total_docs,
+                "completed": completed_docs,
+                "processing": processing_docs,
+                "failed": failed_docs,
+                "total_extracted_rules": int(total_rules),
+                "categories": categories
+            }
+        finally:
+            db.close()
     
-    def _document_to_dict(self, doc: PolicyDocument) -> Dict[str, Any]:
-        """Convert document to dict."""
+    def _document_to_dict(self, doc: PolicyDocumentModel) -> Dict[str, Any]:
+        """Convert SQLAlchemy document model to dict."""
         return {
             "id": doc.id,
             "tenant_id": doc.tenant_id,
             "filename": doc.filename,
             "file_size": doc.file_size,
+            "file_path": doc.file_path,
             "uploaded_by": doc.uploaded_by,
             "status": doc.status,
-            "version": doc.version,
-            "category": doc.category,
-            "tags": doc.tags,
+            "version": 1, # hardcoded for now as it's not in DB yet
+            "category": doc.category or "未分类",
+            "tags": json.loads(doc.tags) if doc.tags else [],
             "total_chars": doc.total_chars,
             "chunks_count": doc.chunks_count,
             "extracted_rules_count": doc.extracted_rules_count,
+            "extracted_rules": json.loads(doc.extracted_rules) if doc.extracted_rules else [],
+            "extracted_entities": json.loads(doc.extracted_entities) if doc.extracted_entities else [],
+            "preview_text": doc.preview_text,
             "error_message": doc.error_message,
-            "created_at": doc.created_at,
-            "updated_at": doc.updated_at,
-            "completed_at": doc.completed_at
+            "created_at": doc.created_at.isoformat() if doc.created_at else None,
+            "updated_at": doc.updated_at.isoformat() if doc.updated_at else None,
+            "completed_at": doc.completed_at.isoformat() if doc.completed_at else None
         }
+

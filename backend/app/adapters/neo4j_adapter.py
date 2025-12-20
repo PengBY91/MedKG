@@ -9,11 +9,14 @@ class Neo4jAdapter:
         # In production, use neo4j.AsyncGraphDatabase
         from app.services.knowledge_store_service import knowledge_store
         self.store = knowledge_store
-        self._mock_data = self._init_mock_data()
+        self._data_cache = None
     
-    def _init_mock_data(self):
-        """Initialize graph data, merging persistent store with basic patient structure."""
-        return {
+    async def _get_data(self):
+        """Lazy initialization of mock data with async store calls."""
+        if self._data_cache:
+            return self._data_cache
+            
+        data = {
             "patients": [
                 {"id": "P001", "name": "张三", "age": 65, "gender": "男"}
             ],
@@ -26,15 +29,17 @@ class Neo4jAdapter:
             "treatments": [
                 {"id": "T001", "visit_id": "V001", "code": "DIALYSIS", "name": "透析", "cost": 450}
             ],
-            "rules": self.store.get_all_rules(),
-            "terminology_hierarchy": {t["term"]: t for t in self.store.get_all_terms()},
+            "rules": await self.store.get_all_rules(),
+            "terminology_hierarchy": {t["term"]: t for t in await self.store.get_all_terms()},
             "policy_hierarchy": []
         }
+        self._data_cache = data
+        return data
 
     async def search_policies(self, query: str) -> List[Dict[str, Any]]:
         """Search policy rules in Knowledge Store."""
         results = []
-        rules = self.store.get_all_rules()
+        rules = await self.store.get_all_rules()
         query_lower = query.lower()
         for rule in rules:
             subject = (rule.get("subject") or "").lower()
@@ -51,12 +56,13 @@ class Neo4jAdapter:
 
     async def get_policy_context(self, rule_id: str) -> Dict[str, Any]:
         """Retrieve contextual information for a rule (parent, siblings)."""
-        rule = next((r for r in self._mock_data["rules"] if r["id"] == rule_id), None)
+        data = await self._get_data()
+        rule = next((r for r in data["rules"] if r["id"] == rule_id), None)
         if not rule:
             return {}
         
-        parent = next((p for p in self._mock_data["policy_hierarchy"] if rule_id in p["children"]), {})
-        siblings = [r for r in self._mock_data["rules"] if r["id"] in parent.get("children", []) and r["id"] != rule_id]
+        parent = next((p for p in data["policy_hierarchy"] if rule_id in p["children"]), {})
+        siblings = [r for r in data["rules"] if r["id"] in parent.get("children", []) and r["id"] != rule_id]
         
         return {
             "rule": rule,
@@ -65,24 +71,25 @@ class Neo4jAdapter:
         }
 
     async def get_terminology_context(self, code: str) -> Dict[str, Any]:
-
         """Retrieve structural context for a terminology code."""
         await asyncio.sleep(0.05)
+        data = await self._get_data()
         # Mock: Return data from terminology_hierarchy
-        return self._mock_data.get("terminology_hierarchy", {}).get(code, {})
+        return data.get("terminology_hierarchy", {}).get(code, {})
 
 
     
     async def get_patient_subgraph(self, patient_id: str) -> Dict[str, Any]:
         """Retrieve patient's medical subgraph."""
         await asyncio.sleep(0.1)  # Simulate DB query
+        data = await self._get_data()
         
         # Mock: Build subgraph from mock data
-        patient = next((p for p in self._mock_data["patients"] if p["id"] == patient_id), None)
+        patient = next((p for p in data["patients"] if p["id"] == patient_id), None)
         if not patient:
             return {}
         
-        visits = [v for v in self._mock_data["visits"] if v["patient_id"] == patient_id]
+        visits = [v for v in data["visits"] if v["patient_id"] == patient_id]
         
         subgraph = {
             "patient": patient,
@@ -90,8 +97,8 @@ class Neo4jAdapter:
         }
         
         for visit in visits:
-            diagnoses = [d for d in self._mock_data["diagnoses"] if d["visit_id"] == visit["id"]]
-            treatments = [t for t in self._mock_data["treatments"] if t["visit_id"] == visit["id"]]
+            diagnoses = [d for d in data["diagnoses"] if d["visit_id"] == visit["id"]]
+            treatments = [t for t in data["treatments"] if t["visit_id"] == visit["id"]]
             
             subgraph["visits"].append({
                 "visit": visit,
@@ -114,7 +121,7 @@ class Neo4jAdapter:
         for visit_data in subgraph.get("visits", []):
             patient_treatments.extend(visit_data.get("treatments", []))
         
-        rules = self.store.get_all_rules()
+        rules = await self.store.get_all_rules()
         
         for treatment in patient_treatments:
             for rule in rules:

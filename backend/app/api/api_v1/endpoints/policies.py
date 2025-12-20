@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
+import os
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from app.services.policy_service import PolicyService
@@ -35,24 +37,34 @@ async def upload_policy(
         content = await file.read()
         file_size = len(content)
         
-        # 1. Save Policy Metadata
-        document = await policy_service.upload_document(
-            filename=filename,
-            file_size=file_size,
-            tenant_id=current_user.get("tenant_id", "default"),
-            user_id=current_user["username"]
-        )
-        
         # 2. Extract Text
         try:
             policy_text = content.decode("utf-8")
         except:
             policy_text = "Unsupported file encoding. Defaulting to mock for demo."
         
+        # Extract preview text (first 500 chars)
+        preview_text = policy_text[:500] if policy_text else ""
+        
         # 3. Compile Rules
         compilation_result = await rule_service.compile(policy_text)
         
-        # 4. Create Governance Review Task for Rules
+        # 4. Extract Entities
+        clinical_entities = await _extract_clinical_entities(policy_text)
+        
+        # 5. Save Policy Metadata and physical file
+        # Seek back to start before saving
+        await file.seek(0)
+        document = await policy_service.upload_document(
+            file=file,
+            tenant_id=current_user.get("tenant_id", "default"),
+            user_id=current_user.get("username"),
+            extracted_rules=[compilation_result] if compilation_result else [],
+            extracted_entities=clinical_entities if clinical_entities else [],
+            preview_text=preview_text
+        )
+        
+        # 5. Create Governance Review Task for Rules
         rule_task_data = {
             "source_file": filename,
             "policy_id": document["id"],
@@ -64,9 +76,8 @@ async def upload_policy(
             task_type="rule_review"
         )
 
-        # 5. Extract Entities and Create Governance Review Task for Terms
+        # 6. Create Governance Review Task for Terms
         term_task_id = None
-        clinical_entities = await _extract_clinical_entities(policy_text)
         if clinical_entities:
             term_task_data = {
                 "source_file": filename, 
@@ -84,7 +95,7 @@ async def upload_policy(
              **document,
              "rule_review_task_id": rule_task_id,
              "term_review_task_id": term_task_id, # Include term review task ID
-             "compilation_status": compilation_result["status"]
+             "compilation_status": compilation_result.get("status") if compilation_result else "unknown"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -146,6 +157,26 @@ async def get_policy(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     return document
+
+@router.get("/{document_id}/download")
+async def download_policy(
+    document_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Download the original policy document."""
+    document = await policy_service.get_document(document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    file_path = document.get("file_path")
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on server")
+    
+    return FileResponse(
+        path=file_path,
+        filename=document.get("filename"),
+        media_type='application/octet-stream'
+    )
 
 @router.put("/{document_id}")
 async def update_policy(
