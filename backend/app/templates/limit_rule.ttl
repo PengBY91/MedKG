@@ -1,0 +1,12 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.org/medical#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:{{rule_id}}Shape a sh:NodeShape ;
+    sh:targetClass ex:{{target_class}} ;
+    sh:property [
+        sh:path ex:{{predicate}} ;
+        sh:maxInclusive {{limit_value}} ;
+        sh:severity sh:{{severity}} ;
+        sh:message "{{subject}} exceeds limit of {{limit_value}}" ;
+    ] .

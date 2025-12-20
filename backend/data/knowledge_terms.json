@@ -1,0 +1,16 @@
+[
+  {
+    "term": "透析",
+    "code": "MOCK-123",
+    "display": "透析",
+    "system": "SNOMED-CT",
+    "status": "APPROVED"
+  },
+  {
+    "term": "腹透",
+    "code": "MOCK-123",
+    "display": "腹透",
+    "system": "SNOMED-CT",
+    "status": "APPROVED"
+  }
+]

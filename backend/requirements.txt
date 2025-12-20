@@ -1,0 +1,17 @@
+fastapi==0.110.0
+uvicorn==0.27.1
+pydantic==2.6.4
+pydantic-settings==2.2.1
+python-multipart==0.0.9
+neo4j==5.18.0
+milvus-lite
+langchain==0.1.12
+pypdf==4.1.0
+pyshacl==0.25.0
+rdflib==7.0.0
+openai==1.14.0
+tenacity==8.2.3
+python-jose[cryptography]==3.3.0
+passlib[argon2]==1.7.4
+argon2-cffi==23.1.0
+openspg-kag

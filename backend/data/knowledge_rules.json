@@ -1,0 +1,27 @@
+[
+  {
+    "status": "success",
+    "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:a440b56dShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"门诊透析 exceeds limit of 420\" ;\n    ] .\n",
+    "rule_type": "limit",
+    "explanation": "Rule compiled successfully as LimitRule",
+    "id": "2d2ddc20"
+  },
+  {
+    "status": "success",
+    "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:5d8bc08aShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"门诊透析 exceeds limit of 420\" ;\n    ] .\n",
+    "rule_type": "limit",
+    "subject": "门诊透析",
+    "object_value": 420,
+    "explanation": "Rule compiled successfully as LimitRule",
+    "id": "2e68dcbc"
+  },
+  {
+    "status": "success",
+    "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:0b53bed4Shape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"门诊透析 exceeds limit of 420\" ;\n    ] .\n",
+    "rule_type": "limit",
+    "subject": "门诊透析",
+    "object_value": 420,
+    "explanation": "Rule compiled successfully as LimitRule",
+    "id": "0a4fc6ff"
+  }
+]

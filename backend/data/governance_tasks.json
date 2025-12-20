@@ -1,0 +1,542 @@
+{
+  "5d5b9669-348b-4ca9-a166-5e6e024a80c2": {
+    "id": "5d5b9669-348b-4ca9-a166-5e6e024a80c2",
+    "doc_id": "3f502d83-42ba-4bd8-8d8f-50d847b6d9b0",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "3f502d83-42ba-4bd8-8d8f-50d847b6d9b0",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:1f3c0b22Shape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "explanation": "Rule compiled successfully as LimitRule"
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-19T18:09:51.478628",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "231deaaa-96ed-49e0-9bc5-86f56c41d22b": {
+    "id": "231deaaa-96ed-49e0-9bc5-86f56c41d22b",
+    "doc_id": "3f502d83-42ba-4bd8-8d8f-50d847b6d9b0",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "3f502d83-42ba-4bd8-8d8f-50d847b6d9b0",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u8179\u900f",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-19T18:09:51.479248",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "a708215c-a47a-4ea1-91c5-d89bdf36a389": {
+    "id": "a708215c-a47a-4ea1-91c5-d89bdf36a389",
+    "doc_id": "df57446d-fdc1-43db-8e15-ccec075d099d",
+    "status": "approve",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "df57446d-fdc1-43db-8e15-ccec075d099d",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:a440b56dShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "explanation": "Rule compiled successfully as LimitRule",
+          "id": "2d2ddc20"
+        }
+      ]
+    },
+    "final_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "df57446d-fdc1-43db-8e15-ccec075d099d",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:a440b56dShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "explanation": "Rule compiled successfully as LimitRule",
+          "id": "2d2ddc20"
+        }
+      ]
+    },
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-19T18:09:55.995017",
+    "reviewer_id": "admin",
+    "feedback_notes": null
+  },
+  "4f3f67be-aed0-4546-ad82-471f27355660": {
+    "id": "4f3f67be-aed0-4546-ad82-471f27355660",
+    "doc_id": "df57446d-fdc1-43db-8e15-ccec075d099d",
+    "status": "approve",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "df57446d-fdc1-43db-8e15-ccec075d099d",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u8179\u900f",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "df57446d-fdc1-43db-8e15-ccec075d099d",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u8179\u900f",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-19T18:09:55.995348",
+    "reviewer_id": "admin",
+    "feedback_notes": null
+  },
+  "ad40df8f-9b12-47f1-a04f-86350d819ccb": {
+    "id": "ad40df8f-9b12-47f1-a04f-86350d819ccb",
+    "doc_id": "fd0e441c-0dc9-4bb6-8d3b-61eb6d6ac292",
+    "status": "approve",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "fd0e441c-0dc9-4bb6-8d3b-61eb6d6ac292",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:5d8bc08aShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule",
+          "id": "2e68dcbc"
+        }
+      ]
+    },
+    "final_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "fd0e441c-0dc9-4bb6-8d3b-61eb6d6ac292",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:5d8bc08aShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule",
+          "id": "2e68dcbc"
+        }
+      ]
+    },
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-19T18:10:37.004870",
+    "reviewer_id": "admin",
+    "feedback_notes": null
+  },
+  "c24bb6ff-c46b-4297-85ce-4cb6fe20845a": {
+    "id": "c24bb6ff-c46b-4297-85ce-4cb6fe20845a",
+    "doc_id": "fd0e441c-0dc9-4bb6-8d3b-61eb6d6ac292",
+    "status": "approve",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "fd0e441c-0dc9-4bb6-8d3b-61eb6d6ac292",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u8179\u900f",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "fd0e441c-0dc9-4bb6-8d3b-61eb6d6ac292",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u8179\u900f",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-19T18:10:37.005402",
+    "reviewer_id": "admin",
+    "feedback_notes": null
+  },
+  "6f64df35-9da6-47ef-8b89-7494591673ec": {
+    "id": "6f64df35-9da6-47ef-8b89-7494591673ec",
+    "doc_id": "7f854288-f6bb-47ee-8114-9d24ff1c76e8",
+    "status": "approve",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "7f854288-f6bb-47ee-8114-9d24ff1c76e8",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:0b53bed4Shape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule",
+          "id": "0a4fc6ff"
+        }
+      ]
+    },
+    "final_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "7f854288-f6bb-47ee-8114-9d24ff1c76e8",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:0b53bed4Shape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule",
+          "id": "0a4fc6ff"
+        }
+      ]
+    },
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-19T18:11:04.694245",
+    "reviewer_id": "admin",
+    "feedback_notes": null
+  },
+  "f578b99c-6601-49f6-8eb1-b971973aa10f": {
+    "id": "f578b99c-6601-49f6-8eb1-b971973aa10f",
+    "doc_id": "7f854288-f6bb-47ee-8114-9d24ff1c76e8",
+    "status": "approve",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "7f854288-f6bb-47ee-8114-9d24ff1c76e8",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u8179\u900f",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "7f854288-f6bb-47ee-8114-9d24ff1c76e8",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u8179\u900f",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-19T18:11:04.694887",
+    "reviewer_id": "admin",
+    "feedback_notes": null
+  },
+  "e4f538ca-f3cc-46a8-82f9-fe8127d32c80": {
+    "id": "e4f538ca-f3cc-46a8-82f9-fe8127d32c80",
+    "doc_id": "88cce031-6d8e-4d49-913a-ad468c92651a",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "medical_rule.txt",
+      "policy_id": "88cce031-6d8e-4d49-913a-ad468c92651a",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:5569b84eShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule"
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-20T00:39:32.376523",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "7023d924-90e8-481c-9cd5-6833e38772ee": {
+    "id": "7023d924-90e8-481c-9cd5-6833e38772ee",
+    "doc_id": "e76a476c-da9f-4aec-97d6-e573bc45213f",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "test_policy.txt",
+      "policy_id": "e76a476c-da9f-4aec-97d6-e573bc45213f",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:ec1996ccShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule"
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-20T01:04:26.809551",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "132dd6e4-ed4f-43ee-a105-9cec8e017253": {
+    "id": "132dd6e4-ed4f-43ee-a105-9cec8e017253",
+    "doc_id": "bea0b016-bc26-4ed0-959b-c6f8bbd29dde",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "bea0b016-bc26-4ed0-959b-c6f8bbd29dde",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:a5c2f2baShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule"
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-20T01:18:22.292764",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "b2befedb-1ef8-4ad8-9c76-0cbca646bcbd": {
+    "id": "b2befedb-1ef8-4ad8-9c76-0cbca646bcbd",
+    "doc_id": "bea0b016-bc26-4ed0-959b-c6f8bbd29dde",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "bea0b016-bc26-4ed0-959b-c6f8bbd29dde",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u7cd6\u5c3f\u75c5",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        },
+        {
+          "term": "\u9ad8\u8840\u538b",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-20T01:18:22.295815",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "cf3eeb92-1ca0-414e-bb41-21d1074c731b": {
+    "id": "cf3eeb92-1ca0-414e-bb41-21d1074c731b",
+    "doc_id": "ced89c45-54e5-4998-8697-b6513f37686f",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "ced89c45-54e5-4998-8697-b6513f37686f",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:7bb776b1Shape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule"
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-20T01:40:23.530702",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "f6b47534-a229-408e-8037-40f29a4b515e": {
+    "id": "f6b47534-a229-408e-8037-40f29a4b515e",
+    "doc_id": "ced89c45-54e5-4998-8697-b6513f37686f",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_2024.txt",
+      "policy_id": "ced89c45-54e5-4998-8697-b6513f37686f",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-20T01:40:23.532164",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "78efdc13-b3ca-4370-8f45-09c7f80238a2": {
+    "id": "78efdc13-b3ca-4370-8f45-09c7f80238a2",
+    "doc_id": "f53bb63d-a3ca-4d7f-bf66-a8e19808b5a3",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_v2.txt",
+      "policy_id": "f53bb63d-a3ca-4d7f-bf66-a8e19808b5a3",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:6d52071dShape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule"
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-20T01:40:24.551352",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "1ce9a8c0-029c-4afd-806f-73d1ea0de7b6": {
+    "id": "1ce9a8c0-029c-4afd-806f-73d1ea0de7b6",
+    "doc_id": "f53bb63d-a3ca-4d7f-bf66-a8e19808b5a3",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "policy_renal_v2.txt",
+      "policy_id": "f53bb63d-a3ca-4d7f-bf66-a8e19808b5a3",
+      "entities": [
+        {
+          "term": "\u900f\u6790",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-20T01:40:24.552056",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "b9d4fcdb-fdc2-40bc-adfc-f35b00eacd8a": {
+    "id": "b9d4fcdb-fdc2-40bc-adfc-f35b00eacd8a",
+    "doc_id": "ec5b0e98-5c19-483c-bc98-f23a15b74ae6",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "medical_record.txt",
+      "policy_id": "ec5b0e98-5c19-483c-bc98-f23a15b74ae6",
+      "rules": [
+        {
+          "status": "success",
+          "shacl_content": "@prefix sh: <http://www.w3.org/ns/shacl#> .\n@prefix ex: <http://example.org/medical#> .\n@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\nex:b9077249Shape a sh:NodeShape ;\n    sh:targetClass ex:OutpatientDialysis ;\n    sh:property [\n        sh:path ex:hasMaxCost ;\n        sh:maxInclusive 420 ;\n        sh:severity sh:Violation ;\n        sh:message \"\u95e8\u8bca\u900f\u6790 exceeds limit of 420\" ;\n    ] .\n",
+          "rule_type": "limit",
+          "subject": "\u95e8\u8bca\u900f\u6790",
+          "object_value": 420,
+          "explanation": "Rule compiled successfully as LimitRule"
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "rule_review",
+    "created_at": "2025-12-20T01:55:02.636889",
+    "reviewer_id": null,
+    "feedback_notes": null
+  },
+  "79b8772c-39a8-442f-89e4-5a018aeabde5": {
+    "id": "79b8772c-39a8-442f-89e4-5a018aeabde5",
+    "doc_id": "ec5b0e98-5c19-483c-bc98-f23a15b74ae6",
+    "status": "pending",
+    "extracted_data": {
+      "source_file": "medical_record.txt",
+      "policy_id": "ec5b0e98-5c19-483c-bc98-f23a15b74ae6",
+      "entities": [
+        {
+          "term": "\u7cd6\u5c3f\u75c5",
+          "suggestion": "MOCK-123",
+          "confidence": 0.95
+        }
+      ]
+    },
+    "final_data": null,
+    "confidence": 0.5,
+    "task_type": "term_review",
+    "created_at": "2025-12-20T01:55:02.638717",
+    "reviewer_id": null,
+    "feedback_notes": null
+  }
+}
