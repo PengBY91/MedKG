@@ -1,41 +1,106 @@
-第三部分 理论框架与技术路线
-3.1 总体技术架构设计
-本工具采用**“LLM+KG双引擎协同”的总体架构，融合范畴论本体建模**、生成式AI（Generative AI）和时序知识图谱三大核心技术支柱。
-3.1.1 架构层次视图
-数据与政策接入层（Multi-modal Ingestion Layer）：
-对接HIS、EMR数据及PDF/Word格式的医保政策文件。
-LLM解析器：利用多模态大模型（如GPT-4o或微调后的Llama 3）直接读取政策文件中的表格、文本，提取规则要素。
-神经符号协同层（Neuro-Symbolic Synergy Layer）：
-快思考（Neural System）：LLM负责处理模糊、非标准的自然语言（如医生口语化的诊断），生成标准术语和规则草案。
-慢思考（Symbolic System）：基于范畴论的知识图谱负责存储确定的本体结构、执行逻辑校验（SHACL）和时序推理。
-互操作接口：RAG（检索增强生成）模块将图谱知识注入LLM，GraphRAG技术利用图结构增强LLM的上下文理解。
-动态治理与演化层（Dynamic Governance Layer）：
-本体演化Agent：监控政策变化，自动建议本体Schema的修改。
-规则冲突检测：利用逻辑推理机检查LLM生成的规则是否存在矛盾。
-应用服务层（Service Layer）：
-Copilot助手：提供对话式的医保政策咨询和病案质控助手。
-3.2 核心技术模块详解：大模型的作用
-3.2.1 LLM驱动的智能术语治理（LLM-driven Terminology Normalization）
-传统的术语映射依赖词向量距离，容易出现“语义相近但临床含义相反”的错误（如“低血糖”与“高血糖”向量接近）。
-生成式对齐（Generative Alignment）：利用LLM的推理能力。
-Prompt设计：“请分析术语‘二型糖伴酮症’。1. 提取核心疾病实体；2. 提取修饰语；3. 在ICD-10国家医保版中寻找最匹配的编码，并解释原因。”
-少样本学习（Few-shot Learning）：在Prompt中嵌入3-5个高质量的专家映射示例，显著提升LLM对本地化医学“黑话”的理解能力。
-候选集重排序（Re-ranking）：先用向量检索召回Top-20候选词，再用LLM进行精细化的语义比对和重排序，最终输出Top-1结果。
-3.2.2 LLM作为规则“编译器”：从文档到代码（Text-to-Rule）
-这是本项目的核心创新点，解决规则维护难的问题。
-政策文档解析：利用支持长文本的LLM（Long-context LLM）读取整份医保政策文档。
-逻辑转译（Translation）：训练LLM将自然语言规则转化为SHACL（Shapes Constraint Language）或Cypher/SPARQL查询语句。
-输入：“参保人员在门诊进行肾透析治疗，每日限额400元。”
-LLM输出（SHACL片段）：
-代码段
-ex:DialysisLimitShape a sh:NodeShape ;
-    sh:targetClass ex:OutpatientVisit ;
-    sh:rule.
+# MedKG: 医疗知识图谱术语与规则治理平台
 
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Vite](https://img.shields.io/badge/frontend-Vue3-green.svg)
+![FastAPI](https://img.shields.io/badge/backend-FastAPI-blue.svg)
+![Neo4j](https://img.shields.io/badge/database-Neo4j-red.svg)
 
-人机回环验证（Human-in-the-loop）：LLM生成的规则代码不直接上线，而是先在“仿真沙箱”中运行，并生成自然语言解释（“这条规则意味着……”），供医保专家审核确认。
-3.2.3 GraphRAG：增强的可解释性与问答
-GraphRAG技术：在回答用户关于“为什么这笔费用被拒付？”的问题时，不只依赖LLM的内部知识，而是先在知识图谱中检索相关的患者诊疗路径子图（Subgraph）和触发的规则节点。
-证据链构建：将检索到的图谱路径（如：患者诊断->属于DRG组A->违反规则B->依据政策文件C）转化为自然语言提示词喂给LLM，让LLM生成一份既有法律依据、又通俗易懂的拒付解释报告。
-3.2.4 范畴论与本体建模（保持原有核心）
-继续采用Ologs (Ontology Logs) 和 BFO 作为底层数学架构，确保LLM生成的知识片段能够被严谨地组装到统一的本体框架中，防止逻辑崩塌1。
+MedKG 是一个基于 **LLM + KG (知识图谱) 双引擎协同**的高端医疗数据治理平台。它将大语言模型的语义理解能力与知识图谱的逻辑严谨性相结合，为医疗机构提供从政策解析到规则执行、从模糊术语到标准编码的全链路治理方案。
+
+---
+
+## 🌟 系统核心能力
+
+MedKG 不仅仅是一个工具，而是一个完整的智能体驱动治理框架，具备以下核心能力：
+
+- **🎯 政策规则化自动化 (Text-to-Rule)**: 革命性地改变了传统人工输入规则的模式。系统能自动解析 PDF/Word 格式的医保政策文档，将其重构为逻辑严谨的 SHACL 约束规则，支持对门诊、住院、药耗等多场景规则的自动提取。
+- **🧬 语义化术语自动对齐**: 解决医疗行业“多名一指”的痛点。通过向量召回初步定位候选，再利用 LLM 对临床黑话进行深层语义比对，实现与国家标准医保编码（ICD-10/ICD-11）的高精度映射。
+- **📊 知识驱动的决策解释 (GraphRAG)**: 当发生医保拒付时，系统不再给出笼统的错误代码，而是通过 GraphRAG 技术串联“患者诊断 -> 触发规则 -> 政策依据”，生成可追溯、可审计的自然语言解释报告。
+- **� 动态治理与版本演化**: 系统具备感知政策变动的能力。通过本体演化 Agent 监控规则冲突，并提供沙箱环境进行历史数据回测，确保新旧规则平稳过渡。
+
+---
+
+## 🧱 模块化架构
+
+系统由四个核心服务模块组成，通过标准 REST API 实现松耦合协作：
+
+### 1. Ingestion Service (数据接入模块)
+- **职责**: 负责多模态数据的预处理。
+- **技术**: 支持长文本切片的语义索引（Semantic Chunking）和 OCR 解析。
+
+### 2. Terminology Service (术语治理模块)
+- **职责**: 管理本体映射逻辑。
+- **特性**: 包含 Few-shot 示例库管理、人工审核工作台（Human-in-the-loop）和术语质量评估引擎。
+
+### 3. Rules Compiler (规则编译模块)
+- **职责**: 自然语言到代码的转译。
+- **架构**: 采用基于插件的解析器架构（Parser Plugin Architecture），支持向 SHACL、Cypher、SPARQL 等多种目标语言编译。
+
+### 4. Explanation Service (解释增强服务)
+- **职责**: 提供基于图谱的 RAG 服务。
+- **功能**: 计算子图相似度，构建证据链，并利用 LLM 汇总生成最终的咨询响应。
+
+---
+
+## 🏛️ 框架结构与分层设计
+
+本系统采用**神经符号驱动的层级化设计**，确保既有灵活性又有可靠性。
+
+### 技术路线图
+- **接入层 (Multi-modal Ingestion)**: 对接全量医疗政策与诊疗数据。
+- **神经符号协同层 (Neuro-Symbolic Layer)**: 
+    - **快思考 (Neural)**: LLM 负责语义解析与生成草案。
+    - **慢思考 (Symbolic)**: KG 负责本体校验 (SHACL) 与严谨推理。
+- **治理层 (Dynamic Governance)**: 监控规则冲突与版本演化。
+- **应用服务层 (Service Layer)**: 提供 Copilot、审核工作台等终端接口。
+
+### 目录结构深度解析
+```text
+MedKG/
+├── backend/                # 后端核心
+│   ├── app/
+│   │   ├── api/            # 暴露给前端的 REST API 路由
+│   │   ├── services/       # 业务逻辑编排 (核心模块实现)
+│   │   ├── core/           # 接口基类、模型定义与公共配置
+│   │   ├── plugins/        # 规则解析器插件扩展目录
+│   │   └── templates/      # 预置的 SHACL 规则模板
+│   ├── storage/            # 临时与持久化文件存储
+│   └── main.py             # FastAPI 启动入口
+├── frontend/               # 前端系统
+│   └── src/
+│       ├── components/     # UI 基础组件
+│       ├── views/          # 业务页面 (治理台、审核、问答)
+│       └── store/          # 全局状态管理
+└── infra/                  # 基础设施配置 (docker-compose 等)
+```
+
+---
+
+## 🚀 快速开始
+
+### 1. 基础设施启动
+```bash
+docker-compose up -d
+```
+
+### 2. 后端服务初始化 (需要 Python 3.9+)
+```bash
+cd backend
+pip install -r requirements.txt
+python verify_core_modules.py  # 验证核心模块可用性
+uvicorn app.main:app --reload
+```
+
+### 3. 前端界面启动
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 🤝 贡献与反馈
+我们致力于打造最专业的医疗治理底座。如果您有任何建议或发现 Bug，请通过 Issue 提交。
+
+**License**: MIT
