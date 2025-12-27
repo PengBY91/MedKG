@@ -473,9 +473,8 @@ onMounted(() => {
 
 <style scoped>
 .policy-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding-bottom: 50px;
+  height: 100%;
+  padding-bottom: 20px;
 }
 
 .page-header {

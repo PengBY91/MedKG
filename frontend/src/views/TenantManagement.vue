@@ -256,8 +256,7 @@ onMounted(() => {
 
 <style scoped>
 .page-card {
-  max-width: 1400px;
-  margin: 0 auto;
+  height: 100%;
 }
 
 .card-header {

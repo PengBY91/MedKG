@@ -170,3 +170,21 @@ class Tenant(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class StandardizationTask(Base):
+    """标准化任务模型"""
+    __tablename__ = "standardization_tasks"
+    
+    id = Column(String, primary_key=True)
+    tenant_id = Column(String, nullable=False, index=True, default="system")
+    filename = Column(String, nullable=False)
+    status = Column(String)  # processing, completed, failed
+    user = Column(String)
+    total_records = Column(Integer, default=0)
+    processed_records = Column(Integer, default=0)
+    success_count = Column(Integer, default=0)
+    failed_count = Column(Integer, default=0)
+    results = Column(Text)  # JSON array
+    error_message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True))

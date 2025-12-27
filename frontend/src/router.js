@@ -8,6 +8,9 @@ import TenantManagement from './views/TenantManagement.vue'
 import TaskWorkbench from './views/TaskWorkbench.vue'
 import DataCatalog from './views/DataCatalog.vue'
 import GovernancePipeline from './views/GovernancePipeline.vue'
+import ExaminationStandardization from './views/ExaminationStandardization.vue'
+import ExaminationOntology from './views/ExaminationOntology.vue'
+import SystemConfig from './views/SystemConfig.vue'
 import Login from './views/Login.vue'
 
 const routes = [
@@ -62,9 +65,27 @@ const routes = [
         component: TaskWorkbench
     },
     {
+        path: '/examination',
+        name: 'ExaminationStandardization',
+        component: ExaminationStandardization,
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/examination/ontology',
+        name: 'ExaminationOntology',
+        component: ExaminationOntology,
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/catalog',
         name: 'DataCatalog',
         component: DataCatalog
+    },
+    {
+        path: '/system-config',
+        name: 'SystemConfig',
+        component: SystemConfig,
+        meta: { requiresAuth: true }
     }
 ]
 

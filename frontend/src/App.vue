@@ -24,16 +24,15 @@
             <span>工作中心</span>
           </el-menu-item>
 
-          <el-menu-item index="/pipeline">
-            <el-icon><Connection /></el-icon>
-            <span>治理流水线</span>
-          </el-menu-item>
-          
           <el-sub-menu index="governance">
             <template #title>
               <el-icon><Tools /></el-icon>
               <span>治理工具</span>
             </template>
+            <el-menu-item index="/pipeline">
+              <el-icon><Connection /></el-icon>
+              <span>治理流水线</span>
+            </el-menu-item>
             <el-menu-item index="/upload">
               <el-icon><Upload /></el-icon>
               <span>政策管理</span>
@@ -46,7 +45,16 @@
               <el-icon><Edit /></el-icon>
               <span>术语清洗</span>
             </el-menu-item>
+            <el-menu-item index="/examination">
+              <el-icon><Checked /></el-icon>
+              <span>标准化任务</span>
+            </el-menu-item>
           </el-sub-menu>
+
+          <el-menu-item index="/examination/ontology">
+             <el-icon><Connection /></el-icon>
+             <span>知识图谱</span>
+          </el-menu-item>
 
           <el-menu-item index="/catalog">
             <el-icon><DataAnalysis /></el-icon>
@@ -71,6 +79,10 @@
               <el-icon><OfficeBuilding /></el-icon>
               <span>租户管理</span>
             </el-menu-item>
+            <el-menu-item index="/system-config">
+              <el-icon><Setting /></el-icon>
+              <span>系统设置</span>
+            </el-menu-item>
           </el-sub-menu>
         </el-menu>
 
@@ -83,7 +95,7 @@
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-                <el-dropdown-item command="settings">系统设置</el-dropdown-item>
+                <el-dropdown-item command="system-config">系统设置</el-dropdown-item>
                 <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -148,8 +160,8 @@ const handleUserCommand = (command) => {
     router.push('/login')
   } else if (command === 'profile') {
     ElMessage.info('个人中心功能开发中')
-  } else if (command === 'settings') {
-    ElMessage.info('系统设置功能开发中')
+  } else if (command === 'system-config') {
+    router.push('/system-config')
   }
 }
 </script>

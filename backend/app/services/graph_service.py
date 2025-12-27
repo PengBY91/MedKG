@@ -64,6 +64,46 @@ class GraphService:
             return "ok"
         except Exception as e:
              raise e
+    
+    # Examination Standardization Support Methods
+    async def query_examination_ontology(self, query_type: str) -> List[str]:
+        """
+        Query examination ontology (body parts/methods/modalities list).
+        
+        Args:
+            query_type: Type of query - 'level1_parts', 'level2_parts', 'methods', 'modalities'
+            
+        Returns:
+            List of ontology items
+        """
+        # Delegate to examination_kg_service for actual implementation
+        from app.services.examination_kg_service import examination_kg_service
+        
+        if query_type == 'level1_parts':
+            return await examination_kg_service.get_all_level1_parts()
+        elif query_type == 'methods':
+            return await examination_kg_service.get_all_methods()
+        elif query_type == 'modalities':
+            return await examination_kg_service.get_all_modalities()
+        else:
+            return []
+    
+    async def validate_examination_triple(self, level1: str, level2: str, method: str) -> bool:
+        """
+        Validate if examination triple conforms to ontology constraints.
+        
+        Args:
+            level1: Level 1 body part
+            level2: Level 2 body part  
+            method: Examination method
+            
+        Returns:
+            True if valid, False otherwise
+        """
+        # Delegate to examination_kg_service for graph-based validation
+        from app.services.examination_kg_service import examination_kg_service
+        
+        return await examination_kg_service.validate_path(level1, level2, method)
 
     async def index_text_chunk_link(self, chunk_id: str, related_node_ids: List[str]):
         """Mutual Indexing: Link Document Chunk <-> Knowledge Node."""
