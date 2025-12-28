@@ -100,7 +100,7 @@ const handleLogin = async () => {
     ElMessage.success('登录成功')
     
     // Redirect to home
-    router.push('/tasks')
+    router.push('/home')
   } catch (error) {
     ElMessage.error(error.response?.data?.detail || '登录失败，请检查用户名和密码')
   } finally {

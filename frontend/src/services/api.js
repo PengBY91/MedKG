@@ -147,6 +147,10 @@ export default {
         return api.post('/terminology/feedback', data)
     },
 
+    extractNlp(text) {
+        return api.post('/terminology/nlp/extract', { text })
+    },
+
 
     // Rules
     compileRule(policyText) {
@@ -303,34 +307,54 @@ export default {
     getUserTasks(params = {}) {
         return api.get('/workflows/tasks', { params })
     },
-
     completeTask(taskId, taskData) {
         return api.post(`/workflows/tasks/${taskId}/complete`, taskData)
     },
 
-    // Governance (Data Assets)
+    // Catalog (Data & Knowledge Assets)
     getDataAssets(params = {}) {
-        return api.get('/governance/assets', { params })
+        return api.get('/catalog/assets', { params })
     },
 
     getAsset(assetId) {
-        return api.get(`/governance/assets/${assetId}`)
+        return api.get('/catalog/assets/' + assetId)
     },
 
     createDataAsset(data) {
-        return api.post('/governance/assets', data)
+        return api.post('/catalog/assets', data)
     },
 
     updateDataAsset(assetId, data) {
-        return api.put(`/governance/assets/${assetId}`, data)
+        return api.put('/catalog/assets/' + assetId, data)
     },
 
     getAssetLineage(assetId) {
-        return api.get(`/governance/assets/${assetId}/lineage`)
+        return api.get('/catalog/assets/' + assetId + '/lineage')
     },
 
     getQualityReport() {
         return api.get('/governance/quality/report')
+    },
+
+    // Ontology (Knowledge Graph)
+    getOntologyInfo() {
+        return api.get('/catalog/ontology')
+    },
+
+    importOntologyData(file, clearExisting = false) {
+        const formData = new FormData()
+        formData.append('file', file)
+        return api.post(`/catalog/ontology/import?clear_existing=${clearExisting}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+    },
+
+    getGraphStats() {
+        return api.get('/catalog/ontology/graph/stats')
+    },
+
+    getGraphTree() {
+        return api.get('/catalog/ontology/graph/tree')
     },
 
     // Governance (Reviews)
@@ -355,7 +379,7 @@ export default {
     },
 
     scanCatalog(connectionInfo) {
-        return api.post('/governance/catalog/scan', connectionInfo)
+        return api.post('/catalog/scan', connectionInfo)
     },
 
     // Users

@@ -2,7 +2,7 @@
   <el-container class="app-container">
     <el-header v-if="!isLoginPage" class="app-header">
       <div class="header-content">
-        <div class="logo-section">
+        <div class="logo-section" @click="$router.push('/home')" style="cursor: pointer;">
           <div class="logo-icon">
             <el-icon :size="32"><DataAnalysis /></el-icon>
           </div>
@@ -19,15 +19,25 @@
           class="nav-menu"
           :ellipsis="false"
         >
-          <el-menu-item index="/tasks">
-            <el-icon><Checked /></el-icon>
-            <span>工作中心</span>
-          </el-menu-item>
+          <el-sub-menu index="terminology-hub">
+            <template #title>
+              <el-icon><Edit /></el-icon>
+              <span>智能术语中台</span>
+            </template>
+            <el-menu-item index="/terminology">
+              <el-icon><Refresh /></el-icon>
+              <span>术语标准化</span>
+            </el-menu-item>
+            <el-menu-item index="/nlp">
+              <el-icon><Cpu /></el-icon>
+              <span>临床逻辑提取</span>
+            </el-menu-item>
+          </el-sub-menu>
 
           <el-sub-menu index="governance">
             <template #title>
               <el-icon><Tools /></el-icon>
-              <span>治理工具</span>
+              <span>治理工具箱</span>
             </template>
             <el-menu-item index="/pipeline">
               <el-icon><Connection /></el-icon>
@@ -39,15 +49,11 @@
             </el-menu-item>
             <el-menu-item index="/rules">
               <el-icon><Document /></el-icon>
-              <span>规则审核</span>
-            </el-menu-item>
-            <el-menu-item index="/terminology">
-              <el-icon><Edit /></el-icon>
-              <span>术语清洗</span>
+              <span>规则中心</span>
             </el-menu-item>
             <el-menu-item index="/examination">
               <el-icon><Checked /></el-icon>
-              <span>标准化任务</span>
+              <span>标准化巡检</span>
             </el-menu-item>
             <el-menu-item index="/quality">
               <el-icon><DataAnalysis /></el-icon>
@@ -55,15 +61,20 @@
             </el-menu-item>
           </el-sub-menu>
 
-          <el-menu-item index="/examination/ontology">
-             <el-icon><Connection /></el-icon>
-             <span>知识图谱</span>
-          </el-menu-item>
-
-          <el-menu-item index="/catalog">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>数据资产</span>
-          </el-menu-item>
+          <el-sub-menu index="data-knowledge-catalog">
+            <template #title>
+              <el-icon><Reading /></el-icon>
+              <span>数据知识资产</span>
+            </template>
+            <el-menu-item index="/catalog">
+              <el-icon><Memo /></el-icon>
+              <span>资产目录</span>
+            </el-menu-item>
+            <el-menu-item index="/catalog/ontology">
+              <el-icon><ConnectionIcon /></el-icon>
+              <span>知识图谱</span>
+            </el-menu-item>
+          </el-sub-menu>
           
           <el-menu-item index="/explanation">
             <el-icon><ChatDotRound /></el-icon>
@@ -135,7 +146,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { 
   DataAnalysis, Checked, Upload, Document, Edit, 
-  ChatDotRound, User, OfficeBuilding, Tools, Setting 
+  ChatDotRound, User, OfficeBuilding, Tools, Setting,
+  Cpu, Memo, Connection as ConnectionIcon, Reading,
+  Refresh, House
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

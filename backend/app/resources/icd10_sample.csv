@@ -1,11 +1,11 @@
-code,name,category
-I21.9,"Acute myocardial infarction, unspecified",Circulatory
-E11.9,"Type 2 diabetes mellitus without complications",Endocrine
-J18.9,"Pneumonia, unspecified",Respiratory
-K35.8,"Acute appendicitis, other and unspecified",Digestive
-M54.5,"Low back pain",Musculoskeletal
-I10,"Essential (primary) hypertension",Circulatory
-J45.909,"Unspecified asthma, uncomplicated",Respiratory
-K29.70,"Gastritis, unspecified, without bleeding",Digestive
-E78.5,"Hyperlipidemia, unspecified",Endocrine
-N39.0,"Urinary tract infection, site not specified",Genitourinary
+code,name,category,synonyms,parent_code
+I21.9,"Acute myocardial infarction, unspecified",Circulatory,"Heart attack, MI, Myocardial infarction",I21
+E11.9,"Type 2 diabetes mellitus without complications",Endocrine,"Diabetes Type 2, T2DM",E11
+J18.9,"Pneumonia, unspecified",Respiratory,"Chest infection",J18
+K35.8,"Acute appendicitis, other and unspecified",Digestive,"Appendicitis",K35
+M54.5,"Low back pain",Musculoskeletal,"Lumbago",M54
+I10,"Essential (primary) hypertension",Circulatory,"High blood pressure, HBP",I10
+J45.909,"Unspecified asthma, uncomplicated",Respiratory,"Asthma attack",J45
+K29.70,"Gastritis, unspecified, without bleeding",Digestive,"Stomach flu",K29
+E78.5,"Hyperlipidemia, unspecified",Endocrine,"High cholesterol",E78
+N39.0,"Urinary tract infection, site not specified",Genitourinary,"UTI",N39

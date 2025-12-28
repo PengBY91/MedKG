@@ -57,11 +57,19 @@ We will adopt the **"Hybrid Driver"** strategy: **Terminology-Enabled Quality Co
     2.  **Quality Dashboard**: Expose `get_quality_report` API with real calculated metrics.
     3.  **Frontend**: Basic Vue page to view Assets and their Quality Scores.
 
-### Phase 3: Intelligence & NLP (Weeks 5-6)
-*   **Objective**: Handle unstructured text.
+### Phase 3: Intelligent Platform & NLP (Enrichment)
+*   **Objective**: Handle unstructured text and complex data relationships.
 *   **Tasks**:
-    1.  **NLP Pipeline**: Integrate extraction logic extracting entities from "Chief Complaint".
-    2.  **Smart Mapping**: Use LLM to suggest mappings for unknown terms.
+    1.  **Intelligent Terminology Hub**:
+        - [NEW] **Hierarchy & Synonyms**: Support parent/child codes and alias mapping in `VectorTerminologyService`.
+        - [NEW] **Audit Workflow**: Implement manual intervention UI for low-confidence matches (<0.6).
+    2.  **Dynamic Lineage Tracking**:
+        - [NEW] **KAG Lineage**: Store data flow relationships (Document -> Entity -> Rule -> Result) in Neo4j.
+        - [NEW] **Lineage Visualization**: Create a frontend graph view for data provenance.
+    3.  **Clinical NLP Service**:
+        - [NEW] **Medical NER**: Implement Named Entity Recognition for Symptoms, Diseases, and Procedures.
+        - [NEW] **Post-structuring**: Create a unified pipeline: `Text -> NLP -> Normalization -> Structured Data`.
+
 
 ---
 
@@ -93,12 +101,19 @@ graph TD
     TS -.->|Normalizes| Data
 ```
 
-## 5. Deployment & Complexity Assessment
+---
 
-*   **Complexity**: Medium-High.
-    *   *Challenge*: Reliable term mapping is hard. Requires tuning vector embeddings.
-    *   *Challenge*: "Closed-loop" requires complex state management (Ticket status, user assignment).
-*   **Resource Requirements**:
-    *   Python 3.10+
-    *   Vector Database (Chroma/Milvus)
-    *   ~2 weeks for Backend MVP, ~1 week for Frontend MVP.
+## 6. Technical Specifications
+
+### 6.1 Clinical NLP Service
+- **Model**: Leverage `KAG` features or `ClinicalBERT` for entity extraction.
+- **Entities**: Symptoms, Diseases, Medications, Body Parts, Procedures.
+- **Interface**: `extract_and_structure(text: str) -> List[StructuredEntity]`
+
+### 6.2 Knowledge-Augmented Lineage
+- **Graph Schema**:
+  - `(Asset)-[:PRODUCED_BY]->(Workflow)`
+  - `(Workflow)-[:CONSUME]->(Asset)`
+  - `(Term)-[:MAPS_TO]->(StandardCode)`
+- **Discovery**: Automatically log lineage during `enhanced_ingest` and `rule_test` executions.
+

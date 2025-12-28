@@ -3,6 +3,7 @@ from datetime import datetime
 import uuid
 import pandas as pd
 from app.services.quality_rule_engine import quality_engine, QualityRule
+from app.services.lineage_service import lineage_service
 
 class DataAsset:
     """Data asset model for governance."""
@@ -150,6 +151,12 @@ class DataGovernanceService:
         asset.quality_score = await self._calculate_quality_score(asset)
         
         self.assets[asset.id] = asset
+
+        # Log to Lineage Graph
+        try:
+            await lineage_service.register_asset_node(asset.id, asset.name, asset.type)
+        except: pass
+
         return self._asset_to_dict(asset)
     
     async def get_assets(

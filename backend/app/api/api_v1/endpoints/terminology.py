@@ -6,6 +6,7 @@ from app.core.auth import get_current_user
 
 from app.services.knowledge_store_service import knowledge_store
 from app.services.vector_terminology_service import vector_terminology_service
+from app.services.clinical_nlp_service import clinical_nlp_service
 
 router = APIRouter()
 
@@ -132,6 +133,26 @@ async def submit_feedback(
             "review_status": status
         }
     }
+
+
+# --- Clinical NLP Pipeline ---
+
+@router.post("/nlp/extract")
+async def extract_and_structure(
+    text: str = Body(..., embed=True),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    [Clinical NLP] Extract medical entities from text and auto-normalize them.
+    Pipeline: Unstructured Text -> Entities (NER) -> Standard Codes (Terminology)
+    """
+    results = await clinical_nlp_service.extract_and_normalize(text)
+    return {
+        "text": text,
+        "entities": results,
+        "entity_count": len(results)
+    }
+
 
 
 

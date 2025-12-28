@@ -34,10 +34,24 @@ class MockLLMProvider(LLMProvider):
             return "limit"
 
         # 3. Standard Terminology Matching (General)
-        if "Standardize" in prompt or "standard medical code" in prompt:
-           if "二型糖" in prompt: return '{"code": "E11.101", "reason": "匹配2型糖尿病伴有酮症酸中毒"}'
-           if "高血压" in prompt: return '{"code": "I10.X00", "reason": "匹配原发性高血压标准编码"}'
-           if "冠心病" in prompt: return '{"code": "I25.101", "reason": "匹配冠心病常用编码"}'
+        if "Extract medical entities" in prompt:
+            if "心梗" in prompt or "心肌梗死" in prompt:
+                return json.dumps([
+                    {"name": "Acute myocardial infarction", "type": "Disease", "context": "疑似心梗"},
+                    {"name": "Low back pain", "type": "Symptom", "context": "近日腰痛"}
+                ])
+            return json.dumps([
+                {"name": "Essential (primary) hypertension", "type": "Disease", "context": "患有原发性高血压"},
+                {"name": "Type 2 diabetes mellitus", "type": "Disease", "context": "2型糖尿病史"}
+            ])
+
+        if "Which of the following medical standardized terms best matches" in prompt:
+             # Just return the first code for mock or NONE
+             import re
+             codes = re.findall(r'- ([A-Z][0-9.]+):', prompt)
+             if codes:
+                 return codes[0]
+             return "NONE"
 
         return '{"code": "UNKNOWN", "reason": "未找到匹配项", "subject": "Unknown", "limit_value": 0}'
 

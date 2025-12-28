@@ -13,6 +13,8 @@ import ExaminationStandardization from './views/ExaminationStandardization.vue'
 import ExaminationOntology from './views/ExaminationOntology.vue'
 import SystemConfig from './views/SystemConfig.vue'
 import DataQualityDashboard from './views/DataQualityDashboard.vue'
+import ClinicalNLPWorkbench from './views/ClinicalNLPWorkbench.vue'
+import Home from './views/Home.vue'
 import Login from './views/Login.vue'
 
 const routes = [
@@ -24,7 +26,12 @@ const routes = [
     },
     {
         path: '/',
-        redirect: '/tasks'
+        redirect: '/home'
+    },
+    {
+        path: '/home',
+        name: 'Home',
+        component: Home
     },
     {
         path: '/pipeline',
@@ -68,8 +75,7 @@ const routes = [
     },
     {
         path: '/tasks',
-        name: 'TaskWorkbench',
-        component: TaskWorkbench
+        redirect: '/home'
     },
     {
         path: '/examination',
@@ -78,7 +84,7 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
-        path: '/examination/ontology',
+        path: '/catalog/ontology',
         name: 'ExaminationOntology',
         component: ExaminationOntology,
         meta: { requiresAuth: true }
@@ -92,6 +98,11 @@ const routes = [
         path: '/quality',
         name: 'DataQualityDashboard',
         component: DataQualityDashboard
+    },
+    {
+        path: '/nlp',
+        name: 'ClinicalNLPWorkbench',
+        component: ClinicalNLPWorkbench
     },
     {
         path: '/system-config',
@@ -114,7 +125,7 @@ router.beforeEach((to, from, next) => {
     if (requiresAuth && !token) {
         next('/login')
     } else if (to.path === '/login' && token) {
-        next('/tasks')
+        next('/home')
     } else {
         next()
     }

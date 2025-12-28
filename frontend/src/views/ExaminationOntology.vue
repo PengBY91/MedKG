@@ -9,7 +9,7 @@
               <el-icon :size="28" color="#409eff"><Connection /></el-icon>
             </div>
             <div class="title-group">
-              <span class="app-title">检验项目图谱</span>
+              <span class="app-title">全域知识图谱</span>
               <span class="app-subtitle">Knowledge Graph Explorer</span>
             </div>
           </div>

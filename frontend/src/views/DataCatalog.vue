@@ -11,7 +11,7 @@
             <el-col :span="6">
               <div class="stat-box">
                 <div class="stat-value">{{ qualityReport.total_assets }}</div>
-                <div class="stat-label">数据资产总数</div>
+                <div class="stat-label">资产总数</div>
               </div>
             </el-col>
             <el-col :span="6">
@@ -41,7 +41,7 @@
         <el-card>
           <template #header>
             <div class="card-header">
-              <span class="card-title">数据资产目录</span>
+              <span class="card-title">数据知识资产目录</span>
               <div class="header-actions">
                 <el-select v-model="assetTypeFilter" placeholder="资产类型" clearable @change="loadAssets" style="width: 150px; margin-right: 10px">
                   <el-option label="数据集" value="dataset" />
@@ -107,7 +107,7 @@
     <!-- Create/Edit Dialog -->
     <el-dialog
       v-model="dialogVisible"
-      :title="dialogMode === 'create' ? '新增数据资产' : '编辑数据资产'"
+      :title="dialogMode === 'create' ? '新增资产' : '编辑资产'"
       width="600px"
     >
       <el-form :model="formData" :rules="formRules" ref="formRef" label-width="100px">
