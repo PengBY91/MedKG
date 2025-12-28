@@ -41,6 +41,17 @@
             </el-select>
           </el-form-item>
 
+          <el-form-item label="匹配算法引擎">
+            <el-radio-group v-model="form.method" size="small">
+              <el-radio-button label="hybrid">混合引擎 (推荐)</el-radio-button>
+              <el-radio-button label="vector">语义向量 (Vector)</el-radio-button>
+              <el-radio-button label="legacy">传统正则 (Rule)</el-radio-button>
+            </el-radio-group>
+            <div class="method-desc">
+              {{ form.method === 'vector' ? '侧重语义理解，适合模糊描述匹配' : (form.method === 'hybrid' ? '结合向量与图谱，兼顾查全查准' : '精确字符串匹配') }}
+            </div>
+          </el-form-item>
+
           <div class="form-footer">
             <el-button type="primary" :loading="normalizing" @click="normalizeTerms" class="run-btn">
               <el-icon><VideoPlay /></el-icon> 执行标准化流程
@@ -181,7 +192,7 @@ const router = useRouter()
 const taskId = computed(() => route.query.taskId)
 const instanceId = computed(() => route.query.instanceId)
 
-const form = reactive({ terms: [] })
+const form = reactive({ terms: [], method: 'hybrid' })
 const showAddDialog = ref(false)
 const addForm = reactive({ term: '', code: '', display: '', system: 'ICD-10' })
 const normalizing = ref(false)
@@ -229,7 +240,7 @@ const normalizeTerms = async () => {
   normalizing.value = true
   results.value = []
   try {
-    const response = await api.normalizeTerms(form.terms)
+    const response = await api.normalizeTerms(form.terms, form.method)
     results.value = response.data
     ElMessage.success({ message: `完成 ${results.value.length} 项术语的智能标准化分析`, duration: 3000 })
   } catch (error) {
@@ -377,6 +388,12 @@ onMounted(async () => {
 :deep(.el-select .el-input__wrapper) {
   padding: 8px 12px;
   border-radius: 12px;
+}
+
+.method-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
 }
 
 .form-footer {

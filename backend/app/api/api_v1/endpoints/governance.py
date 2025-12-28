@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from app.services.data_governance_service import DataGovernanceService
 from app.core.auth import get_current_user
@@ -22,6 +22,13 @@ class AssetUpdate(BaseModel):
     metadata: Optional[dict] = None
     tags: Optional[List[str]] = None
     steward_id: Optional[str] = None
+
+class QualityRuleCreate(BaseModel):
+    id: str
+    name: str
+    condition: str
+    description: Optional[str] = ""
+    severity: str = "warning"
 
 @router.get("/assets")
 async def get_assets(
@@ -96,6 +103,40 @@ async def get_quality_report(
         tenant_id=current_user.get("tenant_id", "default")
     )
     return report
+
+
+@router.post("/assets/{asset_id}/quality-check")
+async def run_quality_check(
+    asset_id: str,
+    data: List[Dict[str, Any]] = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Run quality rules on provided data and update asset information."""
+    report = await governance_service.run_quality_check(asset_id, data)
+    if "error" in report:
+        raise HTTPException(status_code=404, detail=report["error"])
+    return report
+
+@router.post("/quality/rules")
+async def add_quality_rule(
+    rule_data: QualityRuleCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    """Register a new data quality rule."""
+    from app.services.quality_rule_engine import quality_engine, QualityRule
+    rule = QualityRule(**rule_data.dict())
+    quality_engine.add_rule(rule)
+    return {"status": "success", "rule_id": rule.id}
+
+@router.post("/catalog/scan")
+async def scan_catalog(
+    connection_info: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Scan a data source and register new assets."""
+    assets = await governance_service.scan_assets(connection_info)
+    return {"scanned_assets": assets}
+
 
 
 # --- Phase 5: Human-in-the-Loop Review API ---

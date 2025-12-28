@@ -49,6 +49,10 @@
               <el-icon><Checked /></el-icon>
               <span>标准化任务</span>
             </el-menu-item>
+            <el-menu-item index="/quality">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>质量监控</span>
+            </el-menu-item>
           </el-sub-menu>
 
           <el-menu-item index="/examination/ontology">

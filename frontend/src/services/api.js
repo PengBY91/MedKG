@@ -123,8 +123,8 @@ export default {
     },
 
     // Terminology
-    normalizeTerms(terms) {
-        return api.post('/terminology/normalize', { terms })
+    normalizeTerms(terms, method = 'hybrid') {
+        return api.post(`/terminology/normalize?method=${method}`, { terms })
     },
 
     getTerminology() {
@@ -181,7 +181,7 @@ export default {
             use_history: true
         })
     },
-    
+
     // Streaming Query (实时流式问答)
     async queryPolicyStream(question, sessionId = null, callbacks = {}) {
         const {
@@ -193,10 +193,10 @@ export default {
             onDone,           // 完成
             onError           // 错误
         } = callbacks
-        
+
         const token = localStorage.getItem('token')
         const url = `${API_BASE}/explanation/query-stream`
-        
+
         try {
             const response = await fetch(url, {
                 method: 'POST',
@@ -210,26 +210,26 @@ export default {
                     use_history: true
                 })
             })
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
-            
+
             const reader = response.body.getReader()
             const decoder = new TextDecoder()
-            
+
             while (true) {
                 const { done, value } = await reader.read()
                 if (done) break
-                
+
                 const chunk = decoder.decode(value)
                 const lines = chunk.split('\n\n')
-                
+
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         try {
                             const data = JSON.parse(line.substring(6))
-                            
+
                             if (data.type === 'metadata' && onMetadata) {
                                 onMetadata(data.data)
                             } else if (data.type === 'thinking_start') {
@@ -258,36 +258,36 @@ export default {
             if (onError) onError(error)
         }
     },
-    
+
     // Conversations Management
     createConversation(title = '新对话') {
         return api.post('/conversations/conversations', { title })
     },
-    
+
     listConversations(limit = 50, offset = 0) {
         return api.get('/conversations/conversations', {
             params: { limit, offset }
         })
     },
-    
+
     getConversation(sessionId) {
         return api.get(`/conversations/conversations/${sessionId}`)
     },
-    
+
     getConversationMessages(sessionId, limit = 100) {
         return api.get(`/conversations/conversations/${sessionId}/messages`, {
             params: { limit }
         })
     },
-    
+
     updateConversation(sessionId, title) {
         return api.put(`/conversations/conversations/${sessionId}`, { title })
     },
-    
+
     deleteConversation(sessionId) {
         return api.delete(`/conversations/conversations/${sessionId}`)
     },
-    
+
     clearConversations() {
         return api.delete('/conversations/conversations')
     },
@@ -343,6 +343,19 @@ export default {
             decision,
             corrected_data: data
         })
+    },
+
+    // Governance (Quality & Catalog) [NEW]
+    runQualityCheck(assetId, data) {
+        return api.post(`/governance/assets/${assetId}/quality-check`, data)
+    },
+
+    addQualityRule(ruleData) {
+        return api.post('/governance/quality/rules', ruleData)
+    },
+
+    scanCatalog(connectionInfo) {
+        return api.post('/governance/catalog/scan', connectionInfo)
     },
 
     // Users

@@ -1,6 +1,8 @@
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
+import pandas as pd
+from app.services.quality_rule_engine import quality_engine, QualityRule
 
 class DataAsset:
     """Data asset model for governance."""
@@ -23,6 +25,7 @@ class DataAsset:
         self.lineage = {"upstream": [], "downstream": []}
         self.tags = []
         self.status = "active"
+        self.quality_report = {}
         self.created_at = datetime.utcnow().isoformat()
         self.updated_at = datetime.utcnow().isoformat()
 
@@ -204,6 +207,50 @@ class DataGovernanceService:
         asset.quality_score = await self._calculate_quality_score(asset)
         
         return self._asset_to_dict(asset)
+
+    async def run_quality_check(self, asset_id: str, data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Run quality rules on provided data and update asset score."""
+        asset = self.assets.get(asset_id)
+        if not asset:
+            return {"error": "Asset not found"}
+        
+        df = pd.DataFrame(data)
+        report = quality_engine.validate_dataframe(df)
+        
+        asset.quality_report = report
+        asset.quality_score = report["quality_score"]
+        asset.updated_at = datetime.utcnow().isoformat()
+        
+        return report
+
+    async def scan_assets(self, connection_info: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        [NEW] Automated Data Catalog Scanner.
+        Scans a data source (HIS/LIS) and registers new assets.
+        """
+        # Mock scanning HIS database
+        database_type = connection_info.get("type", "HIS")
+        print(f"Scanning {database_type} at {connection_info.get('host', 'localhost')}...")
+        
+        discovered_assets = []
+        if database_type == "HIS":
+            mocks = [
+                {"name": "his_patient_info", "type": "table", "description": "HIS 挂号及患者基本信息"},
+                {"name": "his_diagnosis_records", "type": "table", "description": "HIS 诊断流水记录"},
+                {"name": "his_prescription_items", "type": "table", "description": "HIS 处方明细表"}
+            ]
+            for m in mocks:
+                asset_data = {
+                    "name": m["name"],
+                    "type": m["type"],
+                    "owner_id": "system_scanner",
+                    "description": m["description"],
+                    "metadata": {"source_system": database_type, "scanned_at": datetime.utcnow().isoformat()}
+                }
+                asset = await self.create_asset(asset_data)
+                discovered_assets.append(asset)
+        
+        return discovered_assets
     
     async def get_lineage(self, asset_id: str) -> Dict[str, Any]:
         """Get asset lineage (upstream and downstream)."""
@@ -305,6 +352,7 @@ class DataGovernanceService:
             "lineage": asset.lineage,
             "tags": asset.tags,
             "status": asset.status,
+            "quality_report": asset.quality_report,
             "created_at": asset.created_at,
             "updated_at": asset.updated_at
         }

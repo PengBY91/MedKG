@@ -12,6 +12,7 @@ import GovernancePipeline from './views/GovernancePipeline.vue'
 import ExaminationStandardization from './views/ExaminationStandardization.vue'
 import ExaminationOntology from './views/ExaminationOntology.vue'
 import SystemConfig from './views/SystemConfig.vue'
+import DataQualityDashboard from './views/DataQualityDashboard.vue'
 import Login from './views/Login.vue'
 
 const routes = [
@@ -86,6 +87,11 @@ const routes = [
         path: '/catalog',
         name: 'DataCatalog',
         component: DataCatalog
+    },
+    {
+        path: '/quality',
+        name: 'DataQualityDashboard',
+        component: DataQualityDashboard
     },
     {
         path: '/system-config',

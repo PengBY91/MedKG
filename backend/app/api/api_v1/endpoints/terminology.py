@@ -1,12 +1,21 @@
-from fastapi import APIRouter, Body, UploadFile, File, Depends
+from fastapi import APIRouter, Body, UploadFile, File, Depends, Query
 from typing import List
 from app.services.terminology_service import terminology_service
 from app.services.governance_service import governance_service
 from app.core.auth import get_current_user
 
 from app.services.knowledge_store_service import knowledge_store
+from app.services.vector_terminology_service import vector_terminology_service
 
 router = APIRouter()
+
+@router.on_event("startup")
+async def startup_event():
+    import os
+    # Try to load vector index on startup if resource exists
+    resource_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "resources/icd10_sample.csv")
+    if os.path.exists(resource_path):
+        vector_terminology_service.initialize(resource_path)
 
 @router.get("/")
 async def list_terms():
@@ -63,11 +72,40 @@ async def upload_terms(
     return {"task_id": task_id, "message": "Batch uploaded for review"}
 
 @router.post("/normalize")
-async def normalize_terms(terms: List[str] = Body(..., embed=True)):
+async def normalize_terms(
+    terms: List[str] = Body(..., embed=True),
+    method: str = Query("hybrid", regex="^(vector|hybrid|legacy)$")
+):
     """
     Normalize clinical terms to standard codes using LLM + Vector Search.
+    Methods:
+    - vector: Use strictly the new vector search
+    - legacy: Use the old regex/mock logic (terminology_service)
+    - hybrid: Try vector first, fallback to legacy
     """
-    return await terminology_service.normalize(terms)
+    if method == "legacy":
+        return await terminology_service.normalize(terms)
+    
+    # Vector search
+    vector_results = await vector_terminology_service.normalize(terms)
+    
+    if method == "vector":
+        return vector_results
+        
+    # Hybrid Strategy: If vector search fails (low confidence), fallback to legacy
+    final_results = []
+    legacy_results = await terminology_service.normalize(terms)
+    
+    for v_res, l_res in zip(vector_results, legacy_results):
+        # If vector match is found with good confidence, use it
+        if v_res.get("match_found"):
+            final_results.append(v_res)
+        else:
+            # Fallback to what the legacy service found (might be mock or rule-based)
+            # Merge info if useful
+            final_results.append(l_res)
+            
+    return final_results
 
 @router.post("/feedback")
 async def submit_feedback(
