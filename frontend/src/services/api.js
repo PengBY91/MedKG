@@ -173,10 +173,123 @@ export default {
     },
 
     // Explanation
-    queryPolicy(question) {
-        return api.post('/explanation/query', null, {
-            params: { question }
+    // Explanation Query (Multi-turn conversation support)
+    queryPolicy(question, sessionId = null) {
+        return api.post('/explanation/query', {
+            question,
+            session_id: sessionId,
+            use_history: true
         })
+    },
+    
+    // Streaming Query (实时流式问答)
+    async queryPolicyStream(question, sessionId = null, callbacks = {}) {
+        const {
+            onThinking,       // 思考过程片段
+            onThinkingDone,   // 思考完成
+            onAnswerStart,    // 答案开始
+            onChunk,          // 答案片段
+            onMetadata,       // 元数据
+            onDone,           // 完成
+            onError           // 错误
+        } = callbacks
+        
+        const token = localStorage.getItem('token')
+        const url = `${API_BASE}/explanation/query-stream`
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    question,
+                    session_id: sessionId,
+                    use_history: true
+                })
+            })
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                
+                const chunk = decoder.decode(value)
+                const lines = chunk.split('\n\n')
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.substring(6))
+                            
+                            if (data.type === 'metadata' && onMetadata) {
+                                onMetadata(data.data)
+                            } else if (data.type === 'thinking_start') {
+                                // 思考开始（可用于UI状态切换）
+                            } else if (data.type === 'thinking' && onThinking) {
+                                onThinking(data.content)
+                            } else if (data.type === 'thinking_done' && onThinkingDone) {
+                                onThinkingDone()
+                            } else if (data.type === 'answer_start' && onAnswerStart) {
+                                onAnswerStart()
+                            } else if (data.type === 'chunk' && onChunk) {
+                                onChunk(data.content)
+                            } else if (data.type === 'done' && onDone) {
+                                onDone(data)
+                            } else if (data.type === 'error' && onError) {
+                                onError(new Error(data.error))
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse SSE data:', e)
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Stream query failed:', error)
+            if (onError) onError(error)
+        }
+    },
+    
+    // Conversations Management
+    createConversation(title = '新对话') {
+        return api.post('/conversations/conversations', { title })
+    },
+    
+    listConversations(limit = 50, offset = 0) {
+        return api.get('/conversations/conversations', {
+            params: { limit, offset }
+        })
+    },
+    
+    getConversation(sessionId) {
+        return api.get(`/conversations/conversations/${sessionId}`)
+    },
+    
+    getConversationMessages(sessionId, limit = 100) {
+        return api.get(`/conversations/conversations/${sessionId}/messages`, {
+            params: { limit }
+        })
+    },
+    
+    updateConversation(sessionId, title) {
+        return api.put(`/conversations/conversations/${sessionId}`, { title })
+    },
+    
+    deleteConversation(sessionId) {
+        return api.delete(`/conversations/conversations/${sessionId}`)
+    },
+    
+    clearConversations() {
+        return api.delete('/conversations/conversations')
     },
 
     getWorkflowInstances(params = {}) {

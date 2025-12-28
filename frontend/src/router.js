@@ -3,6 +3,7 @@ import PolicyUpload from './views/PolicyUpload.vue'
 import RuleReview from './views/RuleReview.vue'
 import TerminologyWorkbench from './views/TerminologyWorkbench.vue'
 import ExplanationQuery from './views/ExplanationQuery.vue'
+import ExplanationQueryEnhanced from './views/ExplanationQueryEnhanced.vue'
 import UserManagement from './views/UserManagement.vue'
 import TenantManagement from './views/TenantManagement.vue'
 import TaskWorkbench from './views/TaskWorkbench.vue'
@@ -47,6 +48,11 @@ const routes = [
     {
         path: '/explanation',
         name: 'ExplanationQuery',
+        component: ExplanationQueryEnhanced  // 使用增强版组件
+    },
+    {
+        path: '/explanation-legacy',  // 保留旧版本
+        name: 'ExplanationQueryLegacy',
         component: ExplanationQuery
     },
     {

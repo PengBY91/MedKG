@@ -3,9 +3,20 @@ import logging
 from typing import Optional, Dict
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from pathlib import Path
 
-# Ensure env vars are loaded
-load_dotenv()
+# Ensure env vars are loaded from backend/.env
+# Get the backend directory (3 levels up from this file)
+backend_dir = Path(__file__).parent.parent.parent
+env_path = backend_dir / ".env"
+
+# Load environment variables
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"✓ Loaded .env from: {env_path}")
+else:
+    load_dotenv()  # Fallback to default search
+    print(f"⚠ .env not found at {env_path}, using default search")
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +92,30 @@ class LLMService:
         
         self._init_client()
         return self.client is not None
+    
+    async def generate_stream(self, prompt: str, temperature: float = 0.7):
+        """
+        Generate streaming response from LLM.
+        Yields chunks of text as they are generated.
+        """
+        if not self.client:
+            raise ValueError("LLM client not initialized")
+        
+        try:
+            stream = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                stream=True
+            )
+            
+            async for chunk in stream:
+                if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+                    
+        except Exception as e:
+            logger.error(f"Streaming generation failed: {e}")
+            raise
 
 # Global instance
 llm_service = LLMService()

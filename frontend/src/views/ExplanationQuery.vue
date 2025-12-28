@@ -56,53 +56,74 @@
             <template v-else>
               <div class="text-payload">{{ msg.content }}</div>
               
-              <!-- Synergy Trace for AI -->
-              <div v-if="msg.reasoning_trace" class="synergy-trace">
-                <el-collapse>
-                  <el-collapse-item name="trace">
-                    <template #title>
-                      <el-icon class="trace-icon"><Connection /></el-icon>
-                      <span class="trace-label">图谱协同推理链路</span>
-                    </template>
-                    <div class="trace-steps">
-                      <div v-for="(t, idx) in msg.reasoning_trace" :key="idx" class="trace-step">
-                        <div class="step-dot"></div>
-                        <div class="step-desc">
-                          <span class="step-name">{{ t.step }}</span>
-                          <span class="step-detail">{{ t.detail }}</span>
+              <!-- AI 专属内容：思考过程、推理链路、来源 -->
+              <template v-if="msg.role === 'ai'">
+                <!-- Thinking Process (思考过程) -->
+                <div v-if="msg.thinking && msg.thinking.trim()" class="thinking-section">
+                  <el-collapse class="thinking-collapse">
+                    <el-collapse-item name="thinking">
+                      <template #title>
+                        <div class="thinking-header">
+                          <el-icon class="thinking-icon"><DataAnalysis /></el-icon>
+                          <span class="thinking-label">AI 思考过程</span>
+                          <el-tag size="small" type="warning" effect="plain">点击展开</el-tag>
+                        </div>
+                      </template>
+                      <div class="thinking-content">
+                        {{ msg.thinking }}
+                      </div>
+                    </el-collapse-item>
+                  </el-collapse>
+                </div>
+                
+                <!-- Synergy Trace for AI -->
+                <div v-if="msg.reasoning_trace && msg.reasoning_trace.length > 0" class="synergy-trace">
+                  <el-collapse>
+                    <el-collapse-item name="trace">
+                      <template #title>
+                        <el-icon class="trace-icon"><Connection /></el-icon>
+                        <span class="trace-label">图谱协同推理链路</span>
+                      </template>
+                      <div class="trace-steps">
+                        <div v-for="(t, idx) in msg.reasoning_trace" :key="idx" class="trace-step">
+                          <div class="step-dot"></div>
+                          <div class="step-desc">
+                            <span class="step-name">{{ t.step }}</span>
+                            <span class="step-detail">{{ t.detail }}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </el-collapse-item>
-                </el-collapse>
-              </div>
+                    </el-collapse-item>
+                  </el-collapse>
+                </div>
 
-              <!-- Sources for AI -->
-              <div v-if="msg.sources && msg.sources.length > 0" class="grounded-sources">
-                <div class="source-header">依据条文:</div>
-                <el-scrollbar max-height="120px">
-                  <div class="source-chips">
-                    <el-popover
-                      v-for="(s, sIdx) in msg.sources"
-                      :key="sIdx"
-                      placement="top"
-                      :width="300"
-                      trigger="click"
-                    >
-                      <template #reference>
-                        <el-tag size="small" class="source-tag" @click="viewSource(s)">
-                          {{ s.name }}
-                        </el-tag>
-                      </template>
-                      <div class="source-detail-popover">
-                        <div class="pop-title">{{ s.name }}</div>
-                        <div class="pop-content">{{ s.content }}</div>
-                        <div class="pop-footer">{{ s.parent_doc }} | {{ s.reference }}</div>
-                      </div>
-                    </el-popover>
-                  </div>
-                </el-scrollbar>
-              </div>
+                <!-- Sources for AI -->
+                <div v-if="msg.sources && msg.sources.length > 0" class="grounded-sources">
+                  <div class="source-header">依据条文:</div>
+                  <el-scrollbar max-height="120px">
+                    <div class="source-chips">
+                      <el-popover
+                        v-for="(s, sIdx) in msg.sources"
+                        :key="sIdx"
+                        placement="top"
+                        :width="300"
+                        trigger="click"
+                      >
+                        <template #reference>
+                          <el-tag size="small" class="source-tag" @click="viewSource(s)">
+                            {{ s.name }}
+                          </el-tag>
+                        </template>
+                        <div class="source-detail-popover">
+                          <div class="pop-title">{{ s.name }}</div>
+                          <div class="pop-content">{{ s.content }}</div>
+                          <div class="pop-footer">{{ s.parent_doc }} | {{ s.reference }}</div>
+                        </div>
+                      </el-popover>
+                    </div>
+                  </el-scrollbar>
+                </div>
+              </template>
             </template>
           </div>
         </div>
@@ -154,6 +175,19 @@ const messages = ref([])
 const queryingPolicy = ref(false)
 const messageBox = ref(null)
 
+// Generate or retrieve session ID
+const getOrCreateSessionId = () => {
+  let sessionId = localStorage.getItem('session_id')
+  if (!sessionId) {
+    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    localStorage.setItem('session_id', sessionId)
+  }
+  return sessionId
+}
+
+// Initialize session on component mount
+getOrCreateSessionId()
+
 const suggestedQuestions = [
   "门诊透析的报销限额是多少？",
   "如何办理异地就医备案？",
@@ -186,47 +220,80 @@ const queryPolicy = async () => {
   messages.value.push({
     role: 'ai',
     content: '',
-    loading: true
+    thinking: '',  // 思考过程
+    loading: true,
+    sources: [],
+    reasoning_trace: []
   })
   
   await scrollToBottom()
   queryingPolicy.value = true
 
-  // Ensure minimum typing time for real feel and to prevent flicker
-  const minDelay = new Promise(resolve => setTimeout(resolve, 800))
-
+  const sessionId = getOrCreateSessionId()
+  
   try {
-    const [response] = await Promise.all([
-      api.queryPolicy(currentQuestion),
-      minDelay
-    ])
-    const data = response.data
-    
-    // Update AI message with real data
-    messages.value[aiMsgIdx] = {
-      role: 'ai',
-      content: data.answer,
-      sources: data.sources,
-      reasoning_trace: data.reasoning_trace,
-      loading: false
-    }
+    // 使用流式 API，支持思考过程
+    await api.queryPolicyStream(
+      currentQuestion,
+      sessionId,
+      {
+        // onThinking: 接收思考过程片段
+        onThinking: (chunk) => {
+          console.log('[Thinking Chunk]:', chunk)
+          messages.value[aiMsgIdx].thinking += chunk
+          scrollToBottom()
+        },
+        // onThinkingDone: 思考完成
+        onThinkingDone: () => {
+          console.log('[Thinking Done] Total thinking:', messages.value[aiMsgIdx].thinking)
+        },
+        // onAnswerStart: 答案开始
+        onAnswerStart: () => {
+          console.log('[Answer Start]')
+          messages.value[aiMsgIdx].loading = false
+        },
+        // onChunk: 接收答案片段
+        onChunk: (chunk) => {
+          messages.value[aiMsgIdx].content += chunk
+          scrollToBottom()
+        },
+        // onMetadata: 接收推理链路和来源
+        onMetadata: (metadata) => {
+          console.log('[Metadata]:', metadata)
+          messages.value[aiMsgIdx].sources = metadata.sources || []
+          messages.value[aiMsgIdx].reasoning_trace = metadata.reasoning_trace || []
+          messages.value[aiMsgIdx].entities = metadata.entities || []
+        },
+        // onDone: 完成
+        onDone: (data) => {
+          console.log('[Done]:', data)
+          messages.value[aiMsgIdx].loading = false
+          queryingPolicy.value = false
+          scrollToBottom()
+        },
+        // onError: 错误处理
+        onError: (error) => {
+          console.error('Stream query failed:', error)
+          messages.value[aiMsgIdx].content = '抱歉，我现在遇到一点技术困难，请稍后再试。'
+          messages.value[aiMsgIdx].loading = false
+          queryingPolicy.value = false
+          ElMessage.error('查询失败，请重试')
+        }
+      }
+    )
   } catch (error) {
-    await minDelay
-    messages.value[aiMsgIdx] = {
-      role: 'ai',
-      content: '抱歉，我现在遇到一点技术困难，请稍后再试。',
-      loading: false
-    }
-    // Only show error if it's a real issue
     console.error('Policy query failed:', error)
-  } finally {
+    messages.value[aiMsgIdx].content = '抱歉，我现在遇到一点技术困难，请稍后再试。'
+    messages.value[aiMsgIdx].loading = false
     queryingPolicy.value = false
-    await scrollToBottom()
   }
 }
 
 const clearChat = () => {
   messages.value = []
+  // 清空对话时创建新的会话 ID
+  localStorage.removeItem('session_id')
+  getOrCreateSessionId()
 }
 
 const viewSource = (s) => {
@@ -340,6 +407,72 @@ const viewSource = (s) => {
   color: #303133;
   border-top-left-radius: 4px;
 }
+
+/* === Thinking Process Styles === */
+.thinking-section {
+  margin-top: 16px;
+}
+
+.thinking-collapse {
+  border: 2px solid #ffeaa7;
+  border-radius: 12px;
+  background: #fffbf0;
+  overflow: hidden;
+}
+
+.thinking-collapse :deep(.el-collapse-item__header) {
+  background: #fff9e6;
+  padding: 12px 16px;
+  border: none;
+  font-weight: 500;
+}
+
+.thinking-collapse :deep(.el-collapse-item__header:hover) {
+  background: #fff4d1;
+}
+
+.thinking-collapse :deep(.el-collapse-item__wrap) {
+  border: none;
+  background: #fffbf0;
+}
+
+.thinking-collapse :deep(.el-collapse-item__content) {
+  padding: 16px;
+}
+
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.thinking-icon {
+  color: #e17055;
+  font-size: 18px;
+}
+
+.thinking-label {
+  flex: 1;
+  color: #d63031;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+.thinking-content {
+  color: #5f3e31;
+  line-height: 1.8;
+  font-size: 14px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #fdcb6e;
+  white-space: pre-wrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* === Synergy Trace Styles === */
 
 .avatar-wrap {
   flex-shrink: 0;

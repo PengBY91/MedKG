@@ -58,7 +58,7 @@ class Neo4jAdapter:
         graph_results = await self._graph_search(query)
         
         # Merge and deduplicate results
-        merged_results = self._merge_results(keyword_results, vector_results, graph_results, top_k)
+        merged_results = self._merge_results(keyword_results, vector_results, graph_results, top_k=top_k)
         
         logger.info(f"Retrieved {len(merged_results)} policy rules")
         return merged_results
