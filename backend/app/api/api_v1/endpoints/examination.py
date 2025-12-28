@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from typing import Optional
 import io
 import logging
+import os
 
 from app.services.examination_standardization_service import examination_service
 from app.services.examination_kg_importer import examination_kg_importer

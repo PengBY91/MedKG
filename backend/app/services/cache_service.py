@@ -14,8 +14,12 @@ class CacheService:
     def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0):
         self.redis_url = f"redis://{host}:{port}/{db}"
         self._redis: Optional[redis.Redis] = None
+        self._failed_once = False
 
     async def _get_redis(self) -> redis.Redis:
+        if self._failed_once:
+            raise Exception("Redis connection previously failed. Skipping.")
+            
         if self._redis is None:
             try:
                 self._redis = redis.from_url(self.redis_url, encoding="utf-8", decode_responses=True)
@@ -25,6 +29,7 @@ class CacheService:
             except Exception as e:
                 logger.error(f"Failed to connect to Redis: {str(e)}")
                 self._redis = None
+                self._failed_once = True
                 raise e
         return self._redis
 

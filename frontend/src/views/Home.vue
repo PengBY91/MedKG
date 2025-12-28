@@ -75,55 +75,8 @@
     <el-row :gutter="20" class="bottom-row">
       <!-- Task Management (Integrated from Workbench) -->
       <el-col :span="16">
-        <el-card class="list-card" shadow="never">
-          <template #header>
-            <div class="card-header">
-              <div class="header-left">
-                <el-icon class="section-icon"><List /></el-icon>
-                <span>待办任务列表</span>
-              </div>
-              <el-button link @click="loadTasks" :icon="Refresh">刷新</el-button>
-            </div>
-          </template>
-
-          <el-table 
-            :data="tasks" 
-            v-loading="loadingTasks" 
-            class="task-table"
-            max-height="400"
-          >
-            <el-table-column prop="type" label="类型" width="120">
-              <template #default="{ row }">
-                 <el-tag :type="getTaskTypeColor(row.type)" size="small">{{ getTaskTypeLabel(row.type) }}</el-tag>
-              </template>
-            </el-table-column>
-            
-            <el-table-column prop="node_id" label="关联内容" min-width="150" show-overflow-tooltip />
-
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="getStatusType(row.status)" size="small" round>
-                  {{ getStatusLabel(row.status) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-
-            <el-table-column prop="created_at" label="时间" width="140">
-              <template #default="{ row }">
-                <span class="time-text">{{ formatDate(row.created_at) }}</span>
-              </template>
-            </el-table-column>
-
-            <el-table-column label="操作" width="100" align="center">
-              <template #default="{ row }">
-                <el-button link type="primary" @click="handleTask(row)">处理</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-
         <!-- Activity Stream -->
-        <el-card class="activity-card" shadow="never" style="margin-top: 20px">
+        <el-card class="activity-card" shadow="never">
           <template #header>
             <div class="card-header">
               <span>系统动态</span>
@@ -198,38 +151,6 @@
       </el-col>
     </el-row>
 
-    <!-- Task Handling Drawer -->
-    <el-drawer
-      v-model="drawerVisible"
-      title="任务处理"
-      direction="rtl"
-      size="500px"
-    >
-      <div v-if="currentTask" class="drawer-content">
-        <el-descriptions :column="1" border style="margin-bottom: 20px">
-          <el-descriptions-item label="任务类型">
-            <el-tag :type="getTaskTypeColor(currentTask.type)">{{ getTaskTypeLabel(currentTask.type) }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="关联节点">{{ currentTask.node_id }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ formatDate(currentTask.created_at) }}</el-descriptions-item>
-        </el-descriptions>
-
-        <el-form :model="taskForm" label-position="top">
-          <el-form-item label="审核结果">
-            <el-radio-group v-model="taskForm.result">
-              <el-radio label="approved" border>确认通过</el-radio>
-              <el-radio label="rejected" border>需修改</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="备注说明">
-            <el-input v-model="taskForm.comments" type="textarea" :rows="4" placeholder="请输入审核意见..." />
-          </el-form-item>
-          <el-button type="primary" @click="submitTask" :loading="submitting" block style="width: 100%; margin-top: 20px">
-            提交处理结果
-          </el-button>
-        </el-form>
-      </div>
-    </el-drawer>
   </div>
 </template>
 
@@ -238,7 +159,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { 
   Edit, Tools, Reading, Refresh, Cpu, Upload, ChatDotRound, Setting, 
-  List, List as CheckedIcon
+  List
 } from '@element-plus/icons-vue'
 import api from '../services/api'
 
@@ -248,75 +169,12 @@ const terminologyStats = ref({ standard_count: 5240 })
 const governanceStats = ref({ violation_count: 12 })
 const assetStats = ref({ graph_nodes: 12840 })
 
-const loadingTasks = ref(false)
-const tasks = ref([])
-const drawerVisible = ref(false)
-const currentTask = ref(null)
-const submitting = ref(false)
-const taskForm = reactive({
-  result: 'approved',
-  comments: ''
-})
 
 const activities = ref([
   { user: '系统', action: '完成自动化质控巡检', target: '结算数据资产', time: '10分钟前', type: 'primary' },
   { user: 'Admin', action: '执行术语对齐任务', target: 'ICD-10 标准化', time: '25分钟前', type: 'success' },
   { user: '系统', action: '新资产自动发现', target: 'LIS-检验表', time: '1小时前', type: 'warning' }
 ])
-
-const loadTasks = async () => {
-    loadingTasks.value = true
-    try {
-        const res = await api.getUserTasks({ status: 'pending', limit: 10 })
-        tasks.value = res.data.items
-    } catch(e) {
-        ElMessage.error('加载任务失败')
-    } finally {
-        loadingTasks.value = false
-    }
-}
-
-const handleTask = (task) => {
-    currentTask.value = task
-    taskForm.result = 'approved'
-    taskForm.comments = ''
-    drawerVisible.value = true
-}
-
-const submitTask = async () => {
-    if (!currentTask.value) return
-    submitting.value = true
-    try {
-        await api.completeTask(currentTask.value.id, taskForm)
-        ElMessage.success('任务处理完成')
-        drawerVisible.value = false
-        loadTasks()
-    } catch (e) {
-        ElMessage.error('处理失败')
-    } finally {
-        submitting.value = false
-    }
-}
-
-const getTaskTypeLabel = (type) => {
-  const labels = { approval: '治理审批', review: '逻辑复核', submit: '数据上架' }
-  return labels[type] || type
-}
-
-const getTaskTypeColor = (type) => {
-  const colors = { approval: 'warning', review: 'primary', submit: 'success' }
-  return colors[type] || 'info'
-}
-
-const getStatusLabel = (status) => {
-  const labels = { pending: '待处理', in_progress: '进行中', completed: '已完成' }
-  return labels[status] || status
-}
-
-const getStatusType = (status) => {
-  const types = { pending: 'danger', in_progress: 'warning', completed: 'success' }
-  return types[status] || 'info'
-}
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '-'
@@ -339,7 +197,6 @@ const fetchDashboardData = async () => {
 
 onMounted(() => {
   fetchDashboardData()
-  loadTasks()
 })
 </script>
 

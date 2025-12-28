@@ -1,5 +1,8 @@
 from typing import List, Dict, Any
+import logging
 import math
+
+logger = logging.getLogger(__name__)
 
 class KGRankService:
     """
@@ -15,7 +18,10 @@ class KGRankService:
         self.graph = graph_service
         self.vector_store = vector_store
 
-    async def search(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
+    async def search(self, query: str, top_k: int = 10, **kwargs) -> List[Dict[str, Any]]:
+        # Handle search_type if provided
+        search_type = kwargs.get("search_type", "hybrid")
+        logger.info(f"KGRankService.search initiated with query='{query}', type='{search_type}'")
         # 1. Retrieval Phase
         # Mock retrieval of candidates from Graph & Vector DB
         candidates = self._retrieve_candidates(query)

@@ -128,7 +128,7 @@ export default {
     },
 
     getTerminology() {
-        return api.get('/terminology')
+        return api.get('/terminology/')
     },
 
     deleteTerminology(term) {
