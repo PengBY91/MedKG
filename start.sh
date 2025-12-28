@@ -4,8 +4,8 @@
 # 支持启动、停止、重启前后端服务
 
 # 配置
-BACKEND_DIR="/Users/steve/Desktop/智能体平台/code/MedKG/backend"
-FRONTEND_DIR="/Users/steve/Desktop/智能体平台/code/MedKG/frontend"
+BACKEND_DIR="/Users/steve/work/智能体平台/MedKG/backend"
+FRONTEND_DIR="/Users/steve/work/智能体平台/MedKG/frontend"
 CONDA_ENV="medical"
 BACKEND_PORT=8001
 FRONTEND_PORT=3000
