@@ -21,10 +21,21 @@
               @click="selectTask(task)"
             >
               <div class="item-header">
-                <span class="filename" :title="task.filename">{{ task.filename }}</span>
-                <el-tag :type="getStatusType(task.status)" size="small" effect="dark">
-                  {{ getStatusText(task.status) }}
-                </el-tag>
+                <div class="header-content">
+                    <el-tag :type="getStatusType(task.status)" size="small" effect="dark" style="margin-right: 5px; flex-shrink: 0;">
+                        {{ getStatusText(task.status) }}
+                    </el-tag>
+                    <span class="filename" :title="task.filename">{{ task.filename }}</span>
+                </div>
+                <el-button 
+                    link 
+                    type="danger" 
+                    size="small" 
+                    class="delete-btn" 
+                    @click="(e) => confirmDeleteTask(task, e)"
+                >
+                    <el-icon><Delete /></el-icon>
+                </el-button>
               </div>
               <div class="item-meta">
                 <span>{{ formatDate(task.created_at) }}</span>
@@ -564,6 +575,38 @@ const saveCorrection = async () => {
       savingCorrection.value = false
   }
 }
+// --- Delete Logic ---
+import { Delete } from '@element-plus/icons-vue'
+import { ElMessageBox } from 'element-plus'
+
+const confirmDeleteTask = (task, event) => {
+    // Prevent card click
+    event.stopPropagation()
+    
+    ElMessageBox.confirm(
+        `确定要删除任务 "${task.filename}" 吗？此操作无法撤销。`,
+        '警告',
+        {
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+    ).then(async () => {
+        try {
+            const res = await axios.delete(`/api/v1/examination/tasks/${task.id}`)
+            if (res.data.success) {
+                ElMessage.success('删除成功')
+                // If deleted current task, reset view
+                if (currentTask.value && currentTask.value.id === task.id) {
+                    createNewTask()
+                }
+                loadHistory()
+            }
+        } catch (e) {
+            ElMessage.error('删除失败: ' + (e.response?.data?.detail || e.message))
+        }
+    })
+}
 </script>
 
 <style scoped>
@@ -571,6 +614,7 @@ const saveCorrection = async () => {
     height: calc(100vh - 120px);
     overflow: hidden;
     padding: 20px;
+    box-sizing: border-box; /* Fix width issues */
 }
 .full-height-row {
     height: 100%;
@@ -579,14 +623,26 @@ const saveCorrection = async () => {
     height: 100%;
     display: flex;
     flex-direction: column;
+    min-width: 0; /* Fix flex child overflow/width bugs */
 }
 .history-card {
     height: 100%;
+    display: flex;
+    flex-direction: column;
 }
+.history-card :deep(.el-card__body) {
+    flex: 1;
+    overflow: hidden; /* Ensure list scrolls inside */
+    display: flex;
+    flex-direction: column;
+    padding: 0 !important;
+}
+
 .history-list {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
+    min-width: 0; /* Important for flex containers */
 }
 .history-item {
     padding: 12px;
@@ -596,6 +652,7 @@ const saveCorrection = async () => {
     cursor: pointer;
     transition: all 0.2s;
     border-left: 3px solid transparent;
+    position: relative; /* For absolute positioning if needed, or flex */
 }
 .history-item:hover {
     background: #e6e8eb;
@@ -607,7 +664,24 @@ const saveCorrection = async () => {
 .item-header {
     display: flex;
     justify-content: space-between;
+    align-items: center; /* Align delete icon */
     margin-bottom: 6px;
+}
+.header-content {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    flex: 1;
+    margin-right: 8px;
+}
+.delete-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #f56c6c;
+    padding: 2px;
+}
+.history-item:hover .delete-btn {
+    opacity: 1;
 }
 .filename {
     font-weight: 500;

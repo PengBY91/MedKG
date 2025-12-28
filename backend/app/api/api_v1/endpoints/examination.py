@@ -94,6 +94,21 @@ async def get_task_status(task_id: str):
     }
 
 
+@router.delete("/tasks/{task_id}")
+async def delete_task(task_id: str):
+    """
+    Delete a standardization task.
+    """
+    success = examination_service.delete_task(task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Task not found or failed to delete")
+    return {
+        "success": True,
+        "message": "Task deleted successfully"
+    }
+
+
+
 @router.get("/tasks/{task_id}/results")
 async def get_task_results(task_id: str):
     """

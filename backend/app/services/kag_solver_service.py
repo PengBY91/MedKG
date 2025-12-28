@@ -42,10 +42,11 @@ class KAGSolverService:
         # Load configuration (Env vars or default)
         # Optimization: Use KAGConfig object for tuning parameters
         try:
+            from app.core.config import settings
             cfg = KAGConfig(
-                project_id=os.getenv("KAG_PROJECT_ID", "1"),
-                host=os.getenv("KAG_HOST", "127.0.0.1:8887"),
-                namespace=os.getenv("KAG_NAMESPACE", "MedicalGovernance"),
+                project_id=settings.KAG_PROJECT_ID,
+                host=settings.KAG_HOST,
+                namespace=settings.KAG_NAMESPACE,
                 enable_trace=True  # Optimization: Enable tracing for debug
             )
             self.solver = KAGSolver(cfg)

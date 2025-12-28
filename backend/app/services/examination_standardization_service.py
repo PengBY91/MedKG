@@ -13,6 +13,7 @@ import logging
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import asyncio
 
 # Load environment variables from .env file
 load_dotenv()
@@ -122,6 +123,23 @@ class ExaminationStandardizationService:
             return True
         except Exception as e:
             logger.error(f"Failed to update task results: {e}")
+            db.rollback()
+            return False
+        finally:
+            db.close()
+
+    def delete_task(self, task_id: str) -> bool:
+        """Delete a standardization task."""
+        db = SessionLocal()
+        try:
+            task = db.query(StandardizationTask).filter(StandardizationTask.id == task_id).first()
+            if not task:
+                return False
+            db.delete(task)
+            db.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete task {task_id}: {e}")
             db.rollback()
             return False
         finally:
@@ -258,6 +276,12 @@ class ExaminationStandardizationService:
             
             logger.info(f"Task {task_id} completed: {task.success_count} success, {task.failed_count} failed")
             
+            # Sync to KAG
+            try:
+                await self.sync_task_to_kag(task_id, results_list)
+            except Exception as e:
+                logger.error(f"Failed to sync task {task_id} to KAG: {e}")
+            
         except Exception as e:
             logger.error(f"Task {task_id} failed: {e}")
             # Re-fetch task to ensure session is valid
@@ -269,6 +293,42 @@ class ExaminationStandardizationService:
                 db.commit()
         finally:
             db.close()
+
+    async def sync_task_to_kag(self, task_id: str, results: List[Dict]):
+        """Sync standardized results to KAG/OpenSPG."""
+        from app.services.graph_service import graph_service
+        from app.services.schema_service import schema_service
+        
+        # Ensure schema exists
+        await schema_service.ensure_standardization_schema()
+        
+        for item in results:
+            if item.get("status") != "success":
+                continue
+                
+            original = item.get("original_name")
+            modality = item.get("modality")
+            std_res = json.dumps(item.get("standardized"), ensure_ascii=False)
+            
+            # ID Strategy: Hash of original name + modality to allow lookups
+            # Or just use original name if unique enough. Let's use MD5.
+            import hashlib
+            node_id = hashlib.md5(f"{original}_{modality}".encode()).hexdigest()
+            
+            node_def = {
+                "type": "StdTerm",
+                "id": node_id,
+                "properties": {
+                    "original_name": original,
+                    "modality": modality or "",
+                    "standard_json": std_res,
+                    "status": "active"
+                }
+            }
+            
+            await graph_service.add_node(node_def)
+        
+        logger.info(f"Synced task {task_id} results to KAG.")
 
     async def _standardize_single(self, exam_name: str, modality: str) -> Optional[Dict]:
         """

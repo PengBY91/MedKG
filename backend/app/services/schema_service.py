@@ -24,8 +24,9 @@ class SchemaService:
     """
 
     def __init__(self):
-        self.endpoint = os.getenv("OPENSPG_ENDPOINT", "http://localhost:8887")
-        self.project_id = os.getenv("OPENSPG_PROJECT_ID", "MedicalGovernance")
+        from app.core.config import settings
+        self.endpoint = settings.KAG_HOST
+        self.project_id = settings.KAG_PROJECT_ID
         if HAS_OPENSPG:
             self.client = OpenSPGClient(endpoint=self.endpoint, project_id=self.project_id)
         else:
@@ -101,6 +102,24 @@ class SchemaService:
             
         # Retrieve logical schema from OpenSPG
         return self.client.schema.list()
+
+    async def ensure_standardization_schema(self):
+        """
+        Define Schema for Standardized Examination Terms.
+        Subject: StdTerm
+        Properties: original_name, modality, standard_json, status
+        """
+        model_def = {
+            "name": "StdTerm",
+            "properties": {
+                "original_name": "Text",
+                "modality": "Text",
+                "standard_json": "Text",
+                "status": "Text"
+            },
+            "description": "Standardized Examination Term Record"
+        }
+        return await self.create_subject_model(model_def)
 
 # Singleton
 schema_service = SchemaService()

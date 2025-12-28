@@ -26,10 +26,11 @@ class GraphService:
         
         if HAS_KAG:
             # Optimization: Load storage config from environment
+            from app.core.config import settings
             self.graph_store = GraphStorage(
-                endpoint=os.getenv("GRAPH_ENDPOINT", "bolt://localhost:7687"),
-                user=os.getenv("GRAPH_USER", "neo4j"),
-                password=os.getenv("GRAPH_PASSWORD", "password")
+                endpoint=settings.NEO4J_URI,
+                user=settings.NEO4J_USER,
+                password=settings.NEO4J_PASSWORD
             )
         else:
             self.graph_store = None
