@@ -612,12 +612,14 @@ const confirmDeleteTask = (task, event) => {
 <style scoped>
 .examination-container {
     height: calc(100vh - 120px);
+    width: 100%;
     overflow: hidden;
     padding: 20px;
-    box-sizing: border-box; /* Fix width issues */
+    box-sizing: border-box; 
 }
 .full-height-row {
     height: 100%;
+    width: 100%;
 }
 .history-col, .main-col {
     height: 100%;
@@ -707,6 +709,7 @@ const confirmDeleteTask = (task, event) => {
 /* Main Area */
 .upload-card {
     height: 100%;
+    width: 100%;
     display: flex;
     flex-direction: column;
 }

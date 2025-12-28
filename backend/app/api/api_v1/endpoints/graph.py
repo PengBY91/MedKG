@@ -50,22 +50,49 @@ async def search_graph(req: SearchRequest):
     
     # Return info for graph (ID, Labels, Props)
     # Explicitly return labels(n) because result.data() converts Node to dict and loses labels
+    # Return info for graph (ID, Labels, Props)
     cypher += "RETURN n, id(n) as id, labels(n) as labels LIMIT $limit"
     
     try:
+        # 1. Get Nodes
         results = await neo4j_service.execute_query(cypher, params, database=req.database)
         
-        # Format for frontend
         nodes = []
+        node_ids = []
         for r in results:
-            n = r['n'] # This is a dict of properties
+            n = r['n']
+            nid = r['id']
             nodes.append({
-                "id": r['id'], 
-                "labels": r['labels'], # Explicitly returned
+                "id": nid, 
+                "labels": r['labels'], 
                 "properties": dict(n)
             })
+            node_ids.append(nid)
             
-        return {"success": True, "nodes": nodes}
+        # 2. Get Edges between these nodes (Induced Subgraph)
+        links = []
+        if node_ids:
+            # Cypher to find all rels where both start and end are in our node list
+            # Note: id(n) is integer.
+            rel_query = """
+            MATCH (n)-[r]->(m)
+            WHERE id(n) IN $ids AND id(m) IN $ids
+            RETURN id(n) as source, id(m) as target, type(r) as type, r
+            """
+            rel_params = {"ids": node_ids}
+            rel_results = await neo4j_service.execute_query(rel_query, rel_params, database=req.database)
+            
+            for rr in rel_results:
+                 r_props = rr['r']
+                 if not isinstance(r_props, dict): r_props = {}
+                 links.append({
+                     "source": rr['source'],
+                     "target": rr['target'],
+                     "type": rr['type'],
+                     "properties": dict(r_props)
+                 })
+
+        return {"success": True, "nodes": nodes, "links": links}
     except Exception as e:
         import traceback
         traceback.print_exc()

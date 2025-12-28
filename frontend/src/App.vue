@@ -183,8 +183,8 @@ const handleUserCommand = (command) => {
 }
 
 .header-content {
-  max-width: 1600px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   height: 100%;
   display: flex;
   align-items: center;
@@ -286,8 +286,8 @@ const handleUserCommand = (command) => {
 }
 
 .app-main {
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: 24px;
   min-height: calc(100vh - 140px);
 }
@@ -309,8 +309,8 @@ const handleUserCommand = (command) => {
 }
 
 .footer-content {
-  max-width: 1600px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   height: 100%;
   display: flex;
   align-items: center;
