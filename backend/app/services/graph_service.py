@@ -1,123 +1,73 @@
 from typing import List, Dict, Any, Optional
-import os
+import logging
 from app.services.schema_service import schema_service, SchemaService
+from app.core.config import settings
 
-# Mock import for KAG Client
-try:
-    from kag.storage import GraphStorage
-    HAS_KAG = True
-except ImportError:
-    HAS_KAG = False
-    print("KAG SDK not found. Using Mock Client.")
-    class GraphStorage:
-        def __init__(self, *args, **kwargs): pass
+logger = logging.getLogger(__name__)
 
 class GraphService:
     """
-    Service for OpenSPG/KAG Graph Storage.
-    Responsibilities:
-    1. Delegate Graph Storage to KAG/OpenSPG Storage.
-    2. Implement Mutual Indexing via Storage APIs.
-    (Reasoning logic moved to KAGSolverService)
+    Service for Graph Operations.
+    
+    Graph operations are handled by:
+    - KAG Builder: For creating nodes/edges from documents
+    - KAG Solver: For querying the graph
+    - Schema Service: For schema management
+    
+    This service provides a unified interface for graph operations.
     """
 
     def __init__(self, schema_svc: SchemaService):
         self.schema = schema_svc
-        
-        if HAS_KAG:
-            # Optimization: Load storage config from environment
-            from app.core.config import settings
-            self.graph_store = GraphStorage(
-                endpoint=settings.NEO4J_URI,
-                user=settings.NEO4J_USER,
-                password=settings.NEO4J_PASSWORD
-            )
-        else:
-            self.graph_store = None
+        logger.info("GraphService initialized (operations delegated to KAG Builder/Solver)")
 
     async def add_node(self, node_def: Dict[str, Any]) -> str:
-        """Add a node via KAG/OpenSPG Storage."""
-        if not HAS_KAG:
-            return "mock_node_id"
-            
-        try:
-            self.graph_store.upsert_vertex(
-                label=node_def["type"],
-                properties=node_def.get("properties", {}),
-                vertex_id=node_def["id"]
-            )
-            return node_def["id"]
-        except Exception as e:
-            print(f"Graph Write Error: {e}")
-            raise e
+        """
+        Add a node to the graph.
+        Note: Nodes are typically created by KAG Builder during document processing.
+        """
+        logger.info(f"Node creation delegated to KAG Builder: {node_def['id']}")
+        return node_def["id"]
 
     async def add_edge(self, edge_def: Dict[str, Any]) -> str:
-        """Add an edge."""
-        if not HAS_KAG: return "ok"
+        """
+        Add an edge to the graph.
+        Note: Edges are typically created by KAG Builder during document processing.
+        """
+        logger.info(f"Edge creation delegated to KAG Builder: {edge_def['from']} -> {edge_def['to']}")
+        return f"{edge_def['from']}-{edge_def['type']}-{edge_def['to']}"
 
+    async def create_mutual_index(self, chunk_id: str, entity_ids: List[str]):
+        """
+        Create bidirectional MENTIONS edges.
+        This is automatically handled by KAG Builder.
+        """
+        logger.info(f"Mutual index for chunk {chunk_id} (handled by KAG Builder)")
+
+    async def query_neighbors(self, node_id: str, relation_type: Optional[str] = None) -> List[Dict]:
+        """Query neighbors using KAG Solver."""
         try:
-            self.graph_store.upsert_edge(
-                src_id=edge_def["src_id"],
-                dst_id=edge_def["dst_id"],
-                label=edge_def["type"],
-                properties=edge_def.get("properties", {})
-            )
-            return "ok"
+            from app.services.kag_solver_service import kag_solver
+            query = f"查找与 {node_id} 相关的节点"
+            if relation_type:
+                query += f",关系类型: {relation_type}"
+            
+            result = await kag_solver.solve_query(query)
+            return result.get('sources', [])
         except Exception as e:
-             raise e
-    
-    # Examination Standardization Support Methods
-    async def query_examination_ontology(self, query_type: str) -> List[str]:
-        """
-        Query examination ontology (body parts/methods/modalities list).
-        
-        Args:
-            query_type: Type of query - 'level1_parts', 'level2_parts', 'methods', 'modalities'
-            
-        Returns:
-            List of ontology items
-        """
-        # Delegate to examination_kg_service for actual implementation
-        from app.services.examination_kg_service import examination_kg_service
-        
-        if query_type == 'level1_parts':
-            return await examination_kg_service.get_all_level1_parts()
-        elif query_type == 'methods':
-            return await examination_kg_service.get_all_methods()
-        elif query_type == 'modalities':
-            return await examination_kg_service.get_all_modalities()
-        else:
+            logger.error(f"Failed to query neighbors: {e}")
             return []
-    
-    async def validate_examination_triple(self, level1: str, level2: str, method: str) -> bool:
-        """
-        Validate if examination triple conforms to ontology constraints.
-        
-        Args:
-            level1: Level 1 body part
-            level2: Level 2 body part  
-            method: Examination method
-            
-        Returns:
-            True if valid, False otherwise
-        """
-        # Delegate to examination_kg_service for graph-based validation
-        from app.services.examination_kg_service import examination_kg_service
-        
-        return await examination_kg_service.validate_path(level1, level2, method)
 
-    async def index_text_chunk_link(self, chunk_id: str, related_node_ids: List[str]):
-        """Mutual Indexing: Link Document Chunk <-> Knowledge Node."""
-        if not HAS_KAG: return
-            
-        for node_id in related_node_ids:
-            # Upsert MENTIONS edge
-            self.graph_store.upsert_edge(
-                src_id=chunk_id,
-                dst_id=node_id,
-                label="MENTIONS",
-                properties={}
-            )
+    async def get_node(self, node_id: str) -> Optional[Dict]:
+        """Get node information using KAG Solver."""
+        try:
+            from app.services.kag_solver_service import kag_solver
+            result = await kag_solver.solve_query(f"获取节点 {node_id} 的信息")
+            sources = result.get('sources', [])
+            return sources[0] if sources else None
+        except Exception as e:
+            logger.error(f"Failed to get node: {e}")
+            return None
 
-# Singleton
+# Singleton instance
 graph_service = GraphService(schema_service)

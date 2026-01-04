@@ -1,110 +1,112 @@
 from typing import List, Dict, Any
 import logging
-import math
+from app.services.kag_solver_service import kag_solver
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-class KGRankService:
+class SearchService:
     """
-    Search Service implementing the KG-Rank Pipeline.
-    Steps:
-    1. Retrieval (Graph + Vector)
-    2. Ranking (UmlsBERT or similar)
-    3. Re-ranking (MMR for diversity)
-    4. Factuality Scorer
+    Search Service using KAG Solver for hybrid retrieval.
+    Replaces mock retrieval with real KAG hybrid search (vector + graph).
     """
-
-    def __init__(self, graph_service=None, vector_store=None):
-        self.graph = graph_service
-        self.vector_store = vector_store
-
-    async def search(self, query: str, top_k: int = 10, **kwargs) -> List[Dict[str, Any]]:
-        # Handle search_type if provided
-        search_type = kwargs.get("search_type", "hybrid")
-        logger.info(f"KGRankService.search initiated with query='{query}', type='{search_type}'")
-        # 1. Retrieval Phase
-        # Mock retrieval of candidates from Graph & Vector DB
-        candidates = self._retrieve_candidates(query)
-
-        # 2. Ranking Phase
-        # Initial scoring based on similarity
-        ranked_candidates = self._rank_candidates(query, candidates)
-
-        # 3. Re-ranking Phase (MMR)
-        final_results = self._mmr_rerank(query, ranked_candidates, limit=top_k)
-        
-        # 4. Factuality Check (Optional annotation)
-        for res in final_results:
-            res["factuality_score"] = self._calculate_factuality(res, query)
-
-        return final_results
-
-    def _retrieve_candidates(self, query: str) -> List[Dict]:
-        """Mock Retrieval."""
-        return [
-            {"id": "1", "text": "Metformin treats Diabetes.", "embedding": [0.1, 0.2]},
-            {"id": "2", "text": "Diabetes is a chronic disease.", "embedding": [0.1, 0.21]},
-            {"id": "3", "text": "Aspirin is for pain.", "embedding": [0.9, 0.1]},
-            # Redundant candidate to test MMR
-            {"id": "4", "text": "Metformin is used for Diabetes Type 2.", "embedding": [0.1, 0.205]},
-        ]
-
-    def _rank_candidates(self, query: str, candidates: List[Dict]) -> List[Dict]:
-        """Simple Cosine Sim ranking."""
-        # For mock, we assign dummy scores
-        for c in candidates:
-            c["score"] = 0.9 if "Diabetes" in c["text"] else 0.5
-        
-        return sorted(candidates, key=lambda x: x["score"], reverse=True)
-
-    def _mmr_rerank(self, query: str, candidates: List[Dict], limit: int, lambda_param: float = 0.7) -> List[Dict]:
+    
+    def __init__(self):
+        """Initialize with KAG Solver."""
+        self.solver = kag_solver
+        logger.info("SearchService initialized with KAG Solver")
+    
+    async def search(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
         """
-        Maximal Marginal Relevance (MMR)
-        Score = lambda * Sim(query, doc) - (1-lambda) * Max_Sim(doc, selected_docs)
-        """
-        selected = []
-        pool = candidates[:]
+        Search using KAG hybrid retrieval.
         
-        while len(selected) < limit and pool:
-            best_doc = None
-            best_mmr = -float("inf")
+        Args:
+            query: Search query
+            top_k: Number of results to return
+        
+        Returns:
+            List of search results with scores
+        """
+        try:
+            # Use KAG Solver for retrieval
+            result = await self.solver.solve_query(
+                query=query,
+                context={"top_k": top_k}
+            )
             
-            for doc in pool:
-                # Sim(query, doc) -> already in doc['score']
-                relevance = doc["score"]
+            if result['status'] == 'success':
+                # Extract sources from solver result
+                sources = result.get('sources', [])
                 
-                # Max_Sim(doc, selected)
-                if not selected:
-                    diversity_penalty = 0
-                else:
-                    # Mock similarity betwen docs (using simple check or embedding dot product)
-                    diversity_penalty = max([self._sim(doc, s) for s in selected])
+                # Format as search results
+                search_results = []
+                for idx, source in enumerate(sources[:top_k]):
+                    search_results.append({
+                        "id": source.get("id", f"result_{idx}"),
+                        "content": source.get("content", ""),
+                        "score": source.get("score", 1.0 - (idx * 0.1)),
+                        "metadata": source.get("metadata", {}),
+                        "type": source.get("type", "document")
+                    })
                 
-                mmr_score = lambda_param * relevance - (1 - lambda_param) * diversity_penalty
+                logger.info(f"Search completed: {len(search_results)} results")
+                return search_results
+            else:
+                logger.error(f"Search failed: {result.get('message')}")
+                return []
                 
-                if mmr_score > best_mmr:
-                    best_mmr = mmr_score
-                    best_doc = doc
+        except Exception as e:
+            logger.error(f"Search error: {e}")
+            return []
+    
+    async def semantic_search(self, query: str, filters: Dict[str, Any] = None, top_k: int = 10) -> List[Dict]:
+        """
+        Semantic search with optional filters.
+        """
+        try:
+            context = {"top_k": top_k}
+            if filters:
+                context.update(filters)
             
-            if best_doc:
-                selected.append(best_doc)
-                pool.remove(best_doc)
+            result = await self.solver.solve_query(query=query, context=context)
+            
+            if result['status'] == 'success':
+                sources = result.get('sources', [])
+                return sources[:top_k]
+            else:
+                return []
+        except Exception as e:
+            logger.error(f"Semantic search error: {e}")
+            return []
+    
+    async def graph_search(self, entity_id: str, relation_type: str = None, depth: int = 2) -> Dict[str, Any]:
+        """
+        Graph-based search starting from an entity.
+        Uses KAG's graph retrieval capabilities.
+        """
+        try:
+            # Construct graph query
+            query = f"查找与 {entity_id} 相关的信息"
+            if relation_type:
+                query += f",关系类型: {relation_type}"
+            
+            result = await self.solver.solve_query(
+                query=query,
+                context={"entity_id": entity_id, "depth": depth}
+            )
+            
+            if result['status'] == 'success':
+                return {
+                    "entity": entity_id,
+                    "related": result.get('sources', []),
+                    "reasoning": result.get('reasoning_trace', [])
+                }
+            else:
+                return {"entity": entity_id, "related": [], "reasoning": []}
                 
-        return selected
+        except Exception as e:
+            logger.error(f"Graph search error: {e}")
+            return {"entity": entity_id, "related": [], "error": str(e)}
 
-    def _sim(self, doc_a, doc_b):
-        """Mock Similarity between two docs."""
-        # In real impl, compute cosine sim of embeddings
-        # Here: return high sim if text overlaps significantly
-        set_a = set(doc_a["text"].split())
-        set_b = set(doc_b["text"].split())
-        intersection = len(set_a.intersection(set_b))
-        union = len(set_a.union(set_b))
-        return intersection / union if union > 0 else 0
-
-    def _calculate_factuality(self, doc: Dict, query: str) -> float:
-        """Score if the document contradicts known facts (Mock)."""
-        return 0.95
-
-# Singleton
-search_service = KGRankService()
+# Singleton instance
+search_service = SearchService()

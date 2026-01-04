@@ -27,6 +27,7 @@ kag_project_cfg = kag_cfg.get("project", {})
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Medical Governance Tool"
+    PROJECT_ROOT: str = str(Path(__file__).parent.parent.parent.parent)
     API_V1_STR: str = "/api/v1"
     
     # Mock Database Config

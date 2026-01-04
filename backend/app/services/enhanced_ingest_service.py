@@ -1,144 +1,91 @@
-from typing import List, Dict, Any, Optional
-from fastapi import UploadFile
-import io
-import os
-from pypdf import PdfReader
-import uuid
-from datetime import datetime
-
-# DeepKE Mock Imports
-try:
-    from deepke.name_entity_re.few_shot import FewShotNER
-    from deepke.relation_extraction.document import DocRE
-    HAS_DEEPKE = True
-except ImportError:
-    HAS_DEEPKE = False
-    print("DeepKE SDK not found. Using Mock Extractor.")
-    class FewShotNER:
-        def __init__(self, *args, **kwargs): pass
-        def predict(self, text): return [{"entity": "MockEntity", "type": "Disease", "offset": [0, 10]}]
-    class DocRE:
-        def __init__(self, *args, **kwargs): pass
-        def predict(self, text): return [{"head": "Drug", "tail": "Disease", "relation": "Treats"}]
-
+from typing import List, Dict, Any
 import logging
+from app.services.kag_medical_builder import kag_builder
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-class UploadRecord:
-    """Upload record model."""
-    def __init__(self, filename: str, user: str):
-        self.id = str(uuid.uuid4())
-        self.filename = filename
-        self.status = "processing"
-        self.user = user
-        self.created_at = datetime.utcnow().isoformat()
-        self.completed_at = None
-        self.error_message = None
-        self.extraction_result = {}
-
-class EnhancedIngestionService:
+class EnhancedIngestService:
     """
-    Intelligent Ingestion Service Integration with DeepKE.
-    Features:
-    1. Few-Shot Entity Extraction (for low-resource domains).
-    2. Document-Level Relation Extraction (for cross-sentence context).
+    Enhanced Ingest Service using KAG Builder for document processing.
+    Replaces DeepKE mock with real KAG extraction pipeline.
     """
     
     def __init__(self):
-        self.upload_history: Dict[str, UploadRecord] = {}
-        
-        # Initialize DeepKE Models
-        # In production, models would be loaded from pre-trained paths
-        if HAS_DEEPKE:
-            logger.info("Initializing DeepKE NER and RE models...")
-            self.ner_model = FewShotNER(load_path=os.getenv("DEEPKE_NER_PATH", "./models/deepke_ner"))
-            self.re_model = DocRE(load_path=os.getenv("DEEPKE_RE_PATH", "./models/deepke_re"))
-        else:
-            logger.warning("DeepKE SDK not found. Initializing Mock Extractor.")
-            self.ner_model = FewShotNER()
-            self.re_model = DocRE()
+        """Initialize with KAG Builder."""
+        self.builder = kag_builder
+        logger.info("EnhancedIngestService initialized with KAG Builder")
     
-    async def process_document(self, file: UploadFile, user: str = "system") -> dict:
-        """Process document: Text -> DeepKE Extraction -> Structured Data."""
-        record = UploadRecord(file.filename, user)
-        self.upload_history[record.id] = record
+    async def process_document(self, file_path: str, metadata: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Process document using KAG Builder pipeline.
         
+        Args:
+            file_path: Path to document file
+            metadata: Optional metadata for the document
+        
+        Returns:
+            Processing result with extracted entities and relations
+        """
         try:
-            content = await file.read()
-            text = self._extract_text(file.filename, content)
+            # Use KAG Builder to process document
+            result = self.builder.build_document(file_path)
             
-            if not text:
-                raise ValueError("Empty or unsupported document.")
-
-            logger.info(f"Triggering DeepKE entity extraction for {file.filename} (Length: {len(text)})")
-            # 1. Entity Extraction (Few-Shot)
-            entities = self.ner_model.predict(text)
-            
-            logger.info(f"Triggering DeepKE relation extraction for {file.filename}")
-            # 2. Relation Extraction (Document-Level)
-            # DeepKE DocRE typically handles long text with cross-sentence reasoning
-            relations = self.re_model.predict(text)
-            
-            # 3. Structure Result
-            result = {
-                "text_first_500": text[:500],
-                "entities": entities,
-                "relations": relations
-            }
-            
-            record.status = "completed"
-            record.completed_at = datetime.utcnow().isoformat()
-            record.extraction_result = result
-            
-            logger.info(f"DeepKE processing completed for {file.filename}. Entities: {len(entities)}, Relations: {len(relations)}")
-            
-            # Phase 7: Trigger Automated Governance Workflow
-            try:
-                from app.services.workflow_engine import workflow_engine
-                gov_def = next((d for d in workflow_engine.definitions.values() if d.type == "governance_pipeline"), None)
-                if gov_def:
-                    await workflow_engine.start_workflow(
-                        definition_id=gov_def.id,
-                        tenant_id="default",
-                        context={
-                            "document_name": file.filename,
-                            "document_content": text,
-                            "upload_id": record.id,
-                            "entities": [e.get("entity") for e in entities if e.get("entity")],
-                            "entities_count": len(entities)
-                        },
-                        initiator=user
-                    )
-                    logger.info(f"Triggered governance_pipeline for document: {file.filename}")
-            except Exception as we:
-                logger.error(f"Failed to trigger workflow: {str(we)}")
-
-            return {
-                "upload_id": record.id,
-                "status": "completed",
-                "entities_count": len(entities),
-                "relations_count": len(relations)
-            }
-            
+            if result['status'] == 'success':
+                logger.info(f"Document processed successfully: {file_path}")
+                return {
+                    "status": "success",
+                    "file": file_path,
+                    "message": "Document processed and knowledge extracted",
+                    "metadata": metadata or {}
+                }
+            else:
+                logger.error(f"Document processing failed: {result}")
+                return {
+                    "status": "error",
+                    "file": file_path,
+                    "message": result.get("details", "Processing failed")
+                }
         except Exception as e:
-            record.status = "failed"
-            record.error_message = str(e)
-            return {"upload_id": record.id, "error": str(e)}
-
-    def _extract_text(self, filename: str, content: bytes) -> str:
-        if filename.lower().endswith(".pdf"):
+            logger.error(f"Error processing document {file_path}: {e}")
+            return {
+                "status": "error",
+                "file": file_path,
+                "message": str(e)
+            }
+    
+    async def extract_entities(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Extract entities from text using KAG extractor.
+        For text-only extraction without full document processing.
+        """
+        try:
+            import tempfile
+            import os
+            
+            # Create temporary file for text
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as f:
+                f.write(text)
+                temp_file = f.name
+            
             try:
-                reader = PdfReader(io.BytesIO(content))
-                return "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
-            except:
-                return ""
-        elif filename.lower().endswith(".txt"):
-            return content.decode("utf-8")
-        return ""
+                # Process with KAG Builder
+                result = self.builder.build_document(temp_file)
+                
+                if result['status'] == 'success':
+                    logger.info("Text entities extracted successfully")
+                    return [{"status": "success", "message": "Entities extracted and stored in graph"}]
+                else:
+                    logger.error(f"Entity extraction failed: {result}")
+                    return []
+            finally:
+                # Clean up temp file
+                if os.path.exists(temp_file):
+                    os.unlink(temp_file)
+                    
+        except Exception as e:
+            logger.error(f"Entity extraction failed: {e}")
+            return []
 
-    async def get_upload_history(self) -> List[Dict]:
-        return [vars(r) for r in self.upload_history.values()]
-
-# Singleton
-enhanced_ingest_service = EnhancedIngestionService()
+# Singleton instance
+enhanced_ingest_service = EnhancedIngestService()

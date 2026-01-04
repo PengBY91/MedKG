@@ -1,9 +1,0 @@
-project:
-  namespace: MedicalGovernance
-  host_addr: http://127.0.0.1:8887
-  id: "1"
-
-vectorization:
-  # Mock config for vectorizer
-  model:
-    label: text-embedding-ada-002

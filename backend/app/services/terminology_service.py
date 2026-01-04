@@ -1,106 +1,115 @@
 from typing import List, Dict, Any, Optional
+import logging
 import os
 
-# Mock import for MedCT/MedLink SDKs
-try:
-    from medct.client import MedCTClient
-    from medlink.linker import MedLinkER
-    HAS_MED_TOOLS = True
-except ImportError:
-    HAS_MED_TOOLS = False
-    print("MedCT/MedLink SDKs not found. Using Mock Client.")
-    class MedCTClient:
-        def __init__(self, endpoint): pass
-        def search(self, term): return []
-        def get_concept(self, code): return {}
-    class MedLinkER:
-        def __init__(self, model_path): pass
-        def link(self, text, context): return []
+logger = logging.getLogger(__name__)
 
 class TerminologyService:
     """
-    Service for Medical Terminology Standardization.
-    Integrates with MedCT for ontology and MedLink for entity linking.
+    Medical Terminology Service.
+    
+    CONFIGURATION REQUIRED:
+    This service requires external MedCT/MedLink API access.
+    Please configure the following environment variables:
+    
+    - MEDCT_API_URL: MedCT API endpoint
+    - MEDCT_API_KEY: MedCT API key
+    - MEDLINK_API_URL: MedLink API endpoint  
+    - MEDLINK_API_KEY: MedLink API key
+    
+    If these are not configured, the service will raise errors.
     """
-
+    
     def __init__(self):
-        self.endpoint = os.getenv("MEDCT_ENDPOINT", "http://localhost:8080/fhir")
+        """Initialize with external API configuration."""
+        self.medct_url = os.getenv("MEDCT_API_URL")
+        self.medct_key = os.getenv("MEDCT_API_KEY")
+        self.medlink_url = os.getenv("MEDLINK_API_URL")
+        self.medlink_key = os.getenv("MEDLINK_API_KEY")
         
-        if HAS_MED_TOOLS:
-            self.medct = MedCTClient(endpoint=self.endpoint)
-            # MedLink might load a local model or connect to a service
-            self.medlink = MedLinkER(model_path=os.getenv("MEDLINK_MODEL_PATH", "./models/medlink"))
-        else:
-            self.medct = MedCTClient(self.endpoint)
-            self.medlink = MedLinkER(None)
-
-    async def normalize(self, terms: List[str]) -> List[Dict[str, Any]]:
+        if not all([self.medct_url, self.medct_key]):
+            logger.warning("MedCT API not configured. Set MEDCT_API_URL and MEDCT_API_KEY environment variables.")
+        
+        if not all([self.medlink_url, self.medlink_key]):
+            logger.warning("MedLink API not configured. Set MEDLINK_API_URL and MEDLINK_API_KEY environment variables.")
+    
+    async def search_concept(self, term: str, system: str = "SNOMED") -> List[Dict[str, Any]]:
         """
-        Normalize raw terms to standard codes using MedCT and MedLink.
+        Search for medical concept in terminology system.
+        
+        Args:
+            term: Search term
+            system: Terminology system (SNOMED, ICD-10, etc.)
+        
+        Returns:
+            List of matching concepts
+        
+        Raises:
+            RuntimeError: If API is not configured
         """
-        results = []
-        for term in terms:
-            if not HAS_MED_TOOLS:
-                # Mock logic
-                results.append({
-                    "term": term,
-                    "code": "MOCK-123",
-                    "display": f"Standard {term}",
-                    "system": "SNOMED-CT",
-                    "confidence": 0.95
-                })
-                continue
-
-            # 1. Try Entity Linking with Disambiguation (MedLink)
-            # MedLink uses context to disambiguate (e.g., 'Ca' -> Calcium vs Cancer)
-            # Here we provide dummy context; in real usage, pass full sentence/paragraph.
-            linked_entities = self.medlink.link(term, context=term)
-            
-            if linked_entities:
-                top_match = linked_entities[0]
-                results.append({
-                    "term": term,
-                    "code": top_match.id,
-                    "display": top_match.name,
-                    "system": "SNOMED-CT", # Default to SNOMED
-                    "confidence": top_match.score
-                })
-            else:
-                # 2. Fallback to direct Search in MedCT
-                candidates = self.medct.search(term)
-                if candidates:
-                    best = candidates[0]
-                    results.append({
-                        "term": term,
-                        "code": best.code,
-                        "display": best.display,
-                        "system": best.system,
-                        "confidence": 0.8  # Lower confidence for raw search
-                    })
-                else:
-                    results.append({
-                        "term": term,
-                        "code": None,
-                        "status": "UNKNOWN"
-                    })
-        return results
-
-    async def get_related_concepts(self, code: str, relationship: str = "IS-A") -> List[Dict[str, Any]]:
-        """
-        Query MedCT for hierarchical or semantic relationships.
-        e.g., "Find all children of 'Pneumonia'"
-        """
-        if not HAS_MED_TOOLS:
-            return [{"code": "MOCK-CHILD", "display": "Mock Child Concept"}]
-            
-        # Use MedCT graph capabilities
-        concept = self.medct.get_concept(code)
-        if not concept:
+        if not self.medct_url or not self.medct_key:
+            raise RuntimeError(
+                "MedCT API not configured. Please set MEDCT_API_URL and MEDCT_API_KEY environment variables. "
+                "See backend/app/services/terminology_service.py for details."
+            )
+        
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.medct_url}/search",
+                    params={"term": term, "system": system},
+                    headers={"Authorization": f"Bearer {self.medct_key}"}
+                )
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            logger.error(f"MedCT API error: {e}")
+            raise
+    
+    async def get_concept_details(self, code: str, system: str = "SNOMED") -> Optional[Dict[str, Any]]:
+        """Get detailed information about a medical concept."""
+        if not self.medct_url or not self.medct_key:
+            raise RuntimeError("MedCT API not configured")
+        
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.medct_url}/concept/{code}",
+                    params={"system": system},
+                    headers={"Authorization": f"Bearer {self.medct_key}"}
+                )
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            logger.error(f"MedCT API error: {e}")
+            return None
+    
+    async def get_relationships(self, code: str, relationship_type: str = None) -> List[Dict[str, Any]]:
+        """Get relationships for a medical concept."""
+        if not self.medlink_url or not self.medlink_key:
+            raise RuntimeError(
+                "MedLink API not configured. Please set MEDLINK_API_URL and MEDLINK_API_KEY environment variables."
+            )
+        
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                params = {"code": code}
+                if relationship_type:
+                    params["type"] = relationship_type
+                
+                response = await client.get(
+                    f"{self.medlink_url}/relationships",
+                    params=params,
+                    headers={"Authorization": f"Bearer {self.medlink_key}"}
+                )
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            logger.error(f"MedLink API error: {e}")
             return []
-            
-        # Mocking the relationship traversal access pattern
-        related = concept.get_related(relationship)
-        return [{"code": r.code, "display": r.display} for r in related]
 
-# Singleton
+# Singleton instance
 terminology_service = TerminologyService()

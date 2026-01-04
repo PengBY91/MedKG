@@ -1,4 +1,6 @@
+# ============================================
 # Python
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,12 +25,18 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# ============================================
 # Virtual Environment
+# ============================================
 venv/
 ENV/
 env/
 .venv
+.conda/
 
+# ============================================
+# IDE
+# ============================================
 # PyCharm
 .idea/
 
@@ -38,15 +46,16 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# pyenv
-.python-version
-
-# Environments
+# ============================================
+# Environment Variables
+# ============================================
 .env
 .env.local
 .env.*.local
 
-# Node.js / Vue.js
+# ============================================
+# Node.js / Frontend
+# ============================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -59,70 +68,121 @@ frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
 
-# Editor directories and files
+# ============================================
+# Logs
+# ============================================
+*.log
+logs/
+/tmp/*.log
+backend/logs/
+
+# ============================================
+# Database
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+
+# Neo4j data
+neo4j_data/
+data/neo4j/
+
+# PostgreSQL data
+data/postgres/
+
+# ============================================
+# KAG / OpenSPG
+# ============================================
+# KAG checkpoints and cache
+ckpt/
+.kag_cache/
+
+# OpenSPG data
+data/openspg/
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+.cache/
+
+# Uploaded documents
+backend/uploads/
+backend/documents/
+backend/storage/
+
+# ============================================
+# OS Specific
+# ============================================
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Logs
-*.log
-logs/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Workflow state (runtime data)
-backend/workflow_state.json
-
-# Temporary files
-*.tmp
-*.temp
-/tmp/
-.cache/
-
-# OS specific
-Thumbs.db
-.DS_Store
-
-# DeepKE models (if downloaded locally)
-backend/deepke_models/
+# ============================================
+# Model Files
+# ============================================
+# Large model files (download separately)
 *.pth
 *.pt
 *.bin
+*.ckpt
+models/
 
-# Test coverage
+# ============================================
+# Testing
+# ============================================
 .coverage
 htmlcov/
 .pytest_cache/
+.tox/
+.nox/
 
-# MyPy
+# ============================================
+# Type Checking
+# ============================================
 .mypy_cache/
 .dmypy.json
 dmypy.json
+.pytype/
 
-# Uploaded documents (if storing locally)
-backend/uploads/
-backend/documents/
-backend/storage/
-
-# Neo4j data (if running locally)
-neo4j_data/
-
-# Backup files
+# ============================================
+# Backup Files
+# ============================================
 *.bak
 *.backup
 *~
 
-# MedKG Local Artifacts
-data/
-backend/scripts/
-backend/run_import.py
-backend/verify_data.py
-backend/debug_*.py
-docker-compose-neo4j.yml
-start-neo4j.sh
+# ============================================
+# Docker
+# ============================================
+# Docker volumes (managed by docker-compose)
+docker/volumes/
+
+# ============================================
+# Project Specific
+# ============================================
+# Temporary test files
+test_*.txt
+test_*.pdf
+sample_*.txt
+
+# Runtime state
+backend/workflow_state.json
+
+# Local configuration overrides
+config/local_*.yaml
+config/*.local.yaml
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# ============================================
+# Git
+# ============================================
+*.orig

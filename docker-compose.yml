@@ -1,15 +1,15 @@
-version: '3.8'
+version: "3.8"
 
 name: medical-governance
 
-
 services:
   neo4j:
-    image: neo4j:5.15
+    # Use OpenSPG standard image to support multi-db or specific plugins
+    image: spg-registry.cn-hangzhou.cr.aliyuncs.com/spg/openspg-neo4j:latest
     container_name: medical_neo4j
     ports:
-      - "7474:7474"  # HTTP
-      - "7687:7687"  # Bolt
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
     environment:
       - NEO4J_AUTH=neo4j/password
       - NEO4J_PLUGINS=["apoc"]
@@ -68,10 +68,57 @@ services:
       timeout: 20s
       retries: 3
 
+  # OpenSPG Services
+  openspg-mysql:
+    restart: always
+    image: spg-registry.cn-hangzhou.cr.aliyuncs.com/spg/openspg-mysql:latest
+    container_name: medical_openspg_mysql
+    environment:
+      TZ: Asia/Shanghai
+      LANG: C.UTF-8
+      MYSQL_ROOT_PASSWORD: openspg
+      MYSQL_DATABASE: openspg
+    ports:
+      - "3307:3306" # Avoid conflict with host mysql if any
+    command:
+      [
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_general_ci",
+      ]
+    volumes:
+      - openspg-mysql-data:/var/lib/mysql
+
+  openspg-server:
+    restart: always
+    image: spg-registry.cn-hangzhou.cr.aliyuncs.com/spg/openspg-server:latest
+    container_name: medical_openspg_server
+    ports:
+      - "8887:8887"
+    depends_on:
+      - openspg-mysql
+      - neo4j
+    environment:
+      TZ: Asia/Shanghai
+      LANG: C.UTF-8
+    command:
+      [
+        "java",
+        "-Dfile.encoding=UTF-8",
+        "-Xms1024m",
+        "-Xmx2048m",
+        "-jar",
+        "arks-sofaboot-0.0.1-SNAPSHOT-executable.jar",
+        "--server.repository.impl.jdbc.host=openspg-mysql",
+        "--server.repository.impl.jdbc.password=openspg",
+        "--builder.model.execute.num=10",
+        "--cloudext.graphstore.url=neo4j://neo4j:7687?user=neo4j&password=password&database=neo4j",
+        "--cloudext.searchengine.url=neo4j://neo4j:7687?user=neo4j&password=password&database=neo4j",
+      ]
+
 volumes:
   neo4j-data:
   postgres-data:
   milvus-data:
   etcd-data:
   minio-data:
-
+  openspg-mysql-data:

@@ -1,109 +1,126 @@
-from typing import List, Dict, Any, Optional
+# backend/app/services/kag_solver_service.py
 import os
 import logging
+from typing import Dict, Any, Optional
+from kag.solver.main_solver import SolverMain
+from kag.common.conf import KAG_CONFIG
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Try importing from openspg-kag (namespace usually 'kag')
-try:
-    from kag.solver import KAGSolver
-    from kag.common.conf import KAGConfig
-    HAS_KAG = True
-except ImportError:
-    HAS_KAG = False
-    logger.warning("openspg-kag not installed. Using Mock Solver.")
-    
-    class KAGConfig:
-        def __init__(self, **kwargs): pass
-    
-    class KAGSolver:
-        def __init__(self, cfg: KAGConfig): pass
-        def solve(self, query: str): 
-            return {
-                "answer": f"Mock answer for '{query}'",
-                "evidence": []
-            }
-
 class KAGSolverService:
     """
-    Service wrapper for OpenSPG-KAG Solver.
-    Optimized to use configuration-driven initialization.
+    KAG Solver Service for Medical Q&A
+    Uses KAG's reasoning pipeline for multi-hop question answering
     """
-
+    
     def __init__(self):
+        self.config_path = os.path.join(settings.PROJECT_ROOT, "config/kag_config.yaml")
         self.solver = None
-        self._initialize_solver()
-
-    def _initialize_solver(self):
-        if not HAS_KAG:
-            self.solver = KAGSolver(KAGConfig())
-            return
-
-        # Load configuration (Env vars or default)
-        # Optimization: Use KAGConfig object for tuning parameters
+        
         try:
-            from app.core.config import settings
-            cfg = KAGConfig(
-                project_id=settings.KAG_PROJECT_ID,
-                host=settings.KAG_HOST,
-                namespace=settings.KAG_NAMESPACE,
-                enable_trace=True,  # Optimization: Enable tracing for debug
-                # Enhanced parameters for better QA performance
-                reasoning_depth=3,  # Deeper logical reasoning
-                max_retrieval_results=20,  # More candidates for ranking
-                enable_semantic_matching=True,  # Semantic understanding
-                confidence_threshold=0.6,  # Lower threshold for more recall
-            )
-            self.solver = KAGSolver(cfg)
-            logger.info("KAG Solver initialized with enhanced parameters.")
+            # Initialize KAG config if not already done
+            if not KAG_CONFIG._is_initialized:
+                KAG_CONFIG.initialize(prod=False, config_file=self.config_path)
+            
+            # Initialize Solver Main (no arguments needed)
+            self.solver = SolverMain()
+            logger.info("KAGSolverService initialized successfully")
+            
         except Exception as e:
-            logger.error(f"Failed to init KAG Solver: {e}")
+            logger.error(f"Failed to initialize KAGSolverService: {e}")
             self.solver = None
-
-    async def solve_query(self, query: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    
+    async def solve_query(
+        self, 
+        query: str, 
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
-        Execute Logic Form query via KAG Solver with enhanced context.
+        Solve a medical query using KAG reasoning pipeline
         
         Args:
-            query: Natural language query
-            context: Optional context including retrieved rules, entities, etc.
+            query: User's question in natural language
+            context: Optional context (e.g., patient info, constraints)
+        
+        Returns:
+            Dict containing:
+            - answer: Generated answer
+            - reasoning_trace: Step-by-step reasoning process
+            - sources: Referenced knowledge nodes and chunks
         """
         if not self.solver:
-            return {"error": "Solver not initialized"}
-
+            return {
+                "status": "error",
+                "message": "Solver not initialized. Check configuration.",
+                "answer": None
+            }
+        
         try:
-            # Enhance query with context if provided
-            enhanced_query = query
-            if context:
-                # Add retrieved rules as context
-                if context.get("rules"):
-                    rules_text = "\n".join([r.get("content", "") for r in context["rules"][:5]])
-                    enhanced_query = f"Context: {rules_text}\n\nQuery: {query}"
-                
-                # Add entity information if available
-                if context.get("entities"):
-                    entities_text = ", ".join(context["entities"])
-                    enhanced_query = f"Entities: {entities_text}\n\n{enhanced_query}"
+            logger.info(f"Solving query: {query}")
             
-            logger.info(f"Solving query with KAG: {query[:50]}...")
+            # Use invoke method with required parameters
+            result = self.solver.invoke(
+                project_id=int(settings.KAG_PROJECT_ID),
+                task_id="default_task",
+                query=query,
+                session_id="0",
+                is_report=False,
+                host_addr=settings.KAG_HOST,
+                params=context or {}
+            )
             
-            # Sync call to solver (KAG SDK is typically blocking)
-            # Optimization: Wrap in executor if needed for asyncio
-            res = self.solver.solve(enhanced_query)
+            # Extract answer and metadata
+            if isinstance(result, dict):
+                answer = result.get("answer", "")
+                reasoning_trace = result.get("trace", [])
+                sources = result.get("sources", [])
+            else:
+                answer = str(result) if result else "No answer generated"
+                reasoning_trace = []
+                sources = []
             
-            # Enhance result with metadata
-            if isinstance(res, dict):
-                res["solver_version"] = "KAG-Enhanced"
-                res["context_used"] = bool(context)
+            logger.info(f"Query solved successfully. Answer length: {len(answer)}")
             
-            return res
+            return {
+                "status": "success",
+                "answer": answer,
+                "reasoning_trace": reasoning_trace,
+                "sources": sources,
+                "metadata": {
+                    "query": query,
+                    "num_sources": len(sources),
+                    "num_reasoning_steps": len(reasoning_trace)
+                }
+            }
+            
         except Exception as e:
-            logger.error(f"KAG Solve Error: {e}")
-            return {"error": str(e), "query": query}
+            logger.error(f"Error solving query '{query}': {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "status": "error",
+                "message": str(e),
+                "answer": None
+            }
+    
+    def get_reasoning_explanation(self, trace: list) -> str:
+        """
+        Convert reasoning trace to human-readable explanation
+        """
+        if not trace:
+            return "No reasoning steps available."
+        
+        explanation = "推理过程:\n"
+        for i, step in enumerate(trace, 1):
+            step_type = step.get("type", "unknown")
+            step_desc = step.get("description", "")
+            explanation += f"{i}. [{step_type}] {step_desc}\n"
+        
+        return explanation
 
-    async def validate_logic(self, logic_form: str) -> bool:
-        # KAG handles validation internally during solve
-        return True
+# Singleton instance
+kag_solver = KAGSolverService()
 
-# Singleton
-kag_solver_service = KAGSolverService()
+# Backward compatibility alias
+kag_solver_service = kag_solver

@@ -1,0 +1,99 @@
+# MedKG/kag_config.yaml
+# Core Configuration for KAG Integration (v0.8.0)
+
+# 1. Project Identity
+project:
+  id: "1"
+  namespace: "MedicalGovernance"
+  host_addr: "http://127.0.0.1:8887" # OpenSPG Server Address
+  biz_scene: "medical"
+  language: "zh"
+
+# 2. LLM Configuration (Shared)
+chat_llm: &chat_llm
+  type: openai
+  base_url: "https://api.huiyan-ai.cn/v1"
+  api_key: "sk-wFHN2ySjUYxCx3LrWAkJEMB11FMxYDvF6DHdye9yVDwIH2no"
+  model: "deepseek-chat"
+  enable_check: false
+
+openie_llm: &openie_llm
+  type: openai
+  base_url: "https://api.huiyan-ai.cn/v1"
+  api_key: "sk-wFHN2ySjUYxCx3LrWAkJEMB11FMxYDvF6DHdye9yVDwIH2no"
+  model: "deepseek-chat"
+  enable_check: false
+
+# 3. Vectorizer (Shared)
+vectorize_model: &vectorize_model
+  type: openai
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: "sk-d235e63048a74843b3ff8670fed35108"
+  model: "text-embedding-v4"
+  vector_dimensions: 1536
+  enable_check: false
+
+vectorizer: *vectorize_model
+
+# 4. Storage & Search Components
+search_api: &search_api
+  type: openspg_search_api
+
+graph_api: &graph_api
+  type: openspg_graph_api
+
+# 5. Logging
+log:
+  level: INFO
+
+#------------kag-builder configuration start----------------#
+unstructured_builder:
+  chain:
+    type: unstructured_builder_chain
+    reader:
+      type: txt_reader
+    splitter:
+      type: length_splitter
+      split_length: 800
+      window_length: 100
+    extractor:
+      type: schema_free_extractor
+      llm: *openie_llm
+    vectorizer:
+      type: batch_vectorizer
+      vectorize_model: *vectorize_model
+    writer:
+      type: kg_writer
+    post_processor:
+      type: kag_post_processor
+  scanner:
+    type: file_scanner
+  num_threads_per_chain: 1
+  num_chains: 1
+#------------kag-builder configuration end----------------#
+
+#------------kag-solver configuration start----------------#
+kag_solver_pipeline:
+  type: kag_static_pipeline
+  llm: *chat_llm
+
+  planner:
+    type: lf_kag_static_planner
+    llm: *chat_llm
+
+  executors:
+    - type: kag_hybrid_retrieval_executor
+      retrievers:
+        # Knowledge Graph Exact Match
+        - type: kg_cs_open_spg
+          graph_api: *graph_api
+          search_api: *search_api
+        # Vector Similarity
+        - type: rc_open_spg
+          vectorize_model: *vectorize_model
+          search_api: *search_api
+
+  generator:
+    type: llm_index_generator
+    llm_client: *chat_llm
+#------------kag-solver configuration end----------------#
